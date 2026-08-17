@@ -1,0 +1,50 @@
+# === Learning notes (local-only, per PROMPT_SPECIFICATION_EN.md Rule 2) ===
+/learning/
+
+# === Personal/sample financial data (never commit real bank exports) ===
+/samples/
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === Editors / IDE ===
+.vscode/*
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# === Python (backend) ===
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# === Node / Vite (frontend) ===
+node_modules/
+dist/
+dist-ssr/
+.vite/
+coverage/
+*.local
+
+# === Docker ===
+*.log
+
+# === Misc ===
+*.pem
