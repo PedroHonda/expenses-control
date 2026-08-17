@@ -1,6 +1,9 @@
 # === Learning notes (local-only, per PROMPT_SPECIFICATION_EN.md Rule 2) ===
 /learning/
 
+# === Session progress log (local-only, agent's working memory — not for the repo) ===
+/PROGRESS.md
+
 # === Personal/sample financial data (never commit real bank exports) ===
 /samples/
 

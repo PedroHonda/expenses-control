@@ -28,17 +28,14 @@ expenses-control/
 ├── samples/         # Local sample data for parser validation (gitignored, never committed)
 ├── .gitignore
 ├── CLAUDE.md         # Working rules for the AI coding agent on this repo
-├── PROGRESS.md       # Session-to-session progress log
 └── README.md         # This file
 ```
+
+A local, gitignored `PROGRESS.md` also exists at the repo root as a personal session-to-session log — not part of the tracked project structure above.
 
 ## Full specification
 
 The complete project specification, domain requirements, and development roadmap live in [PROMPT_SPECIFICATION_EN.md](PROMPT_SPECIFICATION_EN.md).
-
-## Current status
-
-See [PROGRESS.md](PROGRESS.md) for the current implementation state and next steps.
 
 ## Getting started
 

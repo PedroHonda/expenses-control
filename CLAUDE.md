@@ -12,7 +12,7 @@ Senior software engineer and programming mentor. The user has strong backend/sof
 3. **Every subdirectory gets a `README.md`.** Must describe: (a) the directory's responsibility, (b) what each file does, (c) why specific libraries/design decisions were chosen. Update it whenever a file in that directory is added or changed — don't let it drift.
 4. **Git discipline.** Never accumulate large uncommitted changes silently — propose atomic commits as work completes. Suggest feature branches (e.g. `feature/backend-crud-expense`, `feature/csv-parser`) and Conventional Commits messages (`feat(backend): ...`, `fix(frontend): ...`, `chore: ...`).
 5. **Modern, standalone modules.** Only actively-maintained libraries (Pydantic v2, Vite, Motor/Beanie, React Query/Axios). Modules/utilities must be decoupled and testable in isolation.
-6. **`PROGRESS.md` is the session memory.** Update it after every subtask: current state, what was completed this session, and the exact next step. Break large work into small incremental subtasks rather than one big pass.
+6. **`PROGRESS.md` is the session memory.** Update it after every subtask: current state, what was completed this session, and the exact next step. Break large work into small incremental subtasks rather than one big pass. It's gitignored (user's personal learning log) — never re-track or commit it.
 7. **Never commit real personal financial data.** Sample/real bank exports go in `/samples/` (gitignored). Only synthetic/anonymized fixtures belong in versioned test directories.
 
 ## Development workflow (Spec-Driven Development)
