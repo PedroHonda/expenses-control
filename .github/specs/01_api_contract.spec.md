@@ -15,7 +15,7 @@ Confirmed with user (2026-08-16): CSV import is a **two-stage** flow, not one-sh
 3. Frontend renders an **editable review table** pre-filled with the parsed fields; user fills in `Category` (required) and optionally `Details`/`Trip` per row, and may exclude/edit rows.
 4. User submits the completed table; backend validates and persists the whole batch.
 
-Rows with a **negative source amount** (e.g. a Nubank bill payment, `"- 2.403,28"`) are a special case: they represent a payment/refund, not a purchase. These are auto-categorized into a dedicated `Pagamento/Estorno` category during parsing (see §2.2, §6) rather than left for the user to categorize manually.
+Rows with a **negative source amount** (e.g. a Nubank bill payment, `"- 2.403,28"`) are a special case: they represent a payment/refund, not a purchase. These are auto-categorized into a dedicated `Payment/Refund` category during parsing (see §2.2, §6) rather than left for the user to categorize manually.
 
 This contract therefore splits CSV import into two endpoints: `upload-csv` (parse only, no side effects) and `import-batch` (validate + persist). This is the key deviation from the single `POST /expenses/upload-csv` endpoint sketched in `PROMPT_SPECIFICATION_EN.md` §Phase 2 — that endpoint is kept, but its contract is "parse and return", not "parse and persist".
 
@@ -28,7 +28,7 @@ This contract therefore splits CSV import into two endpoints: `upload-csv` (pars
 | `id` | `str` (Mongo ObjectId as string) | server-set | |
 | `date` | `date` (ISO 8601 `YYYY-MM-DD`) | yes | |
 | `title` | `str`, 1–200 chars | yes | |
-| `value` | `float`, > 0 | yes | Always stored as a positive absolute value; sign/direction is not modeled on `Expense` itself — a negative source amount is instead signaled via the `Pagamento/Estorno` category (see §6) |
+| `value` | `float`, > 0 | yes | Always stored as a positive absolute value; sign/direction is not modeled on `Expense` itself — a negative source amount is instead signaled via the `Payment/Refund` category (see §6) |
 | `category` | `str` | yes | Must match an existing `Category.name` (case-insensitive) — this is the confirmed reference style (by name, not by id; see §6) |
 | `details` | `str`, ≤ 1000 chars | no | |
 | `trip` | `str`, ≤ 100 chars | no | free-form tag, not a separate collection |
@@ -41,9 +41,11 @@ This contract therefore splits CSV import into two endpoints: `upload-csv` (pars
 | :--- | :--- | :--- | :--- |
 | `id` | `str` | server-set | |
 | `name` | `str`, 1–50 chars | yes | unique, case-insensitive |
-| `is_default` | `bool` | server-set | `true` for the 18 seeded categories, `false` for user-created ones |
+| `is_default` | `bool` | server-set | `true` for categories that came from the seed config at first run, `false` for ones created later via the API |
 
-Default seeded set: the 17 categories from `PROMPT_SPECIFICATION_EN.md` §2 (`Estacionamento, Pedágio, Presentes, Games, Casa, Supermercado, Food, Padaria, Gasolina, Farmácia, Health, Care, Entretenimento, Show, Compras, Carro, Uber`) **plus `Pagamento/Estorno`** — a new special category (confirmed by user, 2026-08-16) used exclusively to auto-classify negative-amount rows during CSV import (bill payments, refunds). Nothing prevents a user from also assigning it manually, but it's not intended as a general-purpose category.
+**Default seeded set** (English names — see §6 decision on language, 2026-08-16): `Parking, Toll, Gifts, Games, Home, Supermarket, Food, Bakery, Fuel, Pharmacy, Health, Care, Entertainment, Show, Shopping, Car, Uber` (the 17 from `PROMPT_SPECIFICATION_EN.md` §2, translated) **plus `Payment/Refund`** — a special category used to auto-classify negative-amount CSV rows (bill payments, refunds; see §4.2). Nothing prevents a user from also assigning `Payment/Refund` manually, but it isn't intended as a general-purpose category.
+
+**Seed list is user-configurable, not hardcoded in application code.** The 18 names above live in a plain external list — `backend/app/core/default_categories.json` (a flat JSON array of strings) — read by the seeder script (Phase 2 item 5). A user can edit that file before first running the seeder to use their own default set instead. The seeder is idempotent (skips names that already exist, case-insensitively) so it's also safe to edit the file and re-run it later to add more defaults. This keeps "what counts as a default category" a data/config concern, not something requiring a code change.
 
 ## 3. Pydantic Schemas (DTOs)
 
@@ -112,7 +114,7 @@ Stage 1: parse only, **no persistence**.
 - `multipart/form-data`, field `file`, `.csv` only, max 5 MB
 - Header matching is case-insensitive and alias-aware (e.g. `amount`/`value`/`valor` → `value`; `date`/`data` → `date`; `title`/`description`/`descrição` → `title`)
 - Number parsing must handle both `1234.56` and Brazilian-locale `"1.234,56"` / `"- 2.403,28"` (leading space + minus, comma decimal, period thousands separator)
-- **Negative-amount rows**: `value` is stored as the absolute value, and `category` is auto-set to `"Pagamento/Estorno"` (not left `null`) — such rows do **not** appear in `missing_required` for the category field, since the parser already resolved it. The user can still overwrite the category in the review table if the auto-classification is wrong.
+- **Negative-amount rows**: `value` is stored as the absolute value, and `category` is auto-set to `"Payment/Refund"` (not left `null`) — such rows do **not** appear in `missing_required` for the category field, since the parser already resolved it. The user can still overwrite the category in the review table if the auto-classification is wrong.
 - Rows that fail to parse are still returned (with `parse_errors` populated), never silently dropped
 - **200** → `CSVParseResponse`
 - `400` if the file isn't a valid CSV at all (unreadable/empty)
@@ -146,15 +148,18 @@ Filtering + pagination.
 
 ## 6. Decisions (confirmed by user, 2026-08-16)
 
-1. **Negative amounts**: a dedicated `Pagamento/Estorno` category is seeded (see §2.2). Negative-amount CSV rows are auto-categorized into it during parsing, with `value` stored as the absolute value — not excluded from import, not left for the user to categorize. The user can still override the category in the review table.
+1. **Negative amounts**: a dedicated `Payment/Refund` category is seeded (see §2.2). Negative-amount CSV rows are auto-categorized into it during parsing, with `value` stored as the absolute value — not excluded from import, not left for the user to categorize. The user can still override the category in the review table.
 2. **`category` reference style**: by `Category.name` (string), not by `id`. Simpler, matches the CSV/manual-entry UX directly. Accepts minor risk of orphaned strings if a category is later renamed — category rename/delete is out of scope for this phase.
 3. **Auth/multi-user**: none. Single-user, no authentication, consistent with the "Personal Expense Tracker" framing. Revisit only if the project scope changes.
+4. **Default category language & configurability**: all seed category names are in English, to match the codebase's English-only convention. The seed list is not hardcoded in Python — it's an external, user-editable config file (`backend/app/core/default_categories.json`) so the user can define their own default set without touching code (see §2.2).
 
 ## 7. Acceptance Criteria
 
 - [ ] Uploading `samples/Nubank_2026-09-06.csv` to `upload-csv` returns 17 parsed rows; the 16 positive-amount rows have `title` and `value` populated, `category` null, `missing_required: ["category"]`, with correctly parsed Brazilian-locale amounts (e.g. `"38,97"` → `38.97`).
-- [ ] The negative-amount row (`"- 2.403,28"`, `"Pagamento recebido"`) is returned with `value: 2403.28`, `category: "Pagamento/Estorno"`, and does **not** appear in `missing_required`.
-- [ ] The seeded category list (`GET /categories/`) includes all 17 original defaults plus `Pagamento/Estorno`, all with `is_default: true`.
+- [ ] The negative-amount row (`"- 2.403,28"`, `"Pagamento recebido"`) is returned with `value: 2403.28`, `category: "Payment/Refund"`, and does **not** appear in `missing_required`.
+- [ ] Running the seeder against an empty `categories` collection with the default `default_categories.json` populates all 18 English category names (17 translated + `Payment/Refund`), all with `is_default: true`.
+- [ ] Editing `default_categories.json` to a custom list before the first seeder run results in `GET /categories/` reflecting that custom list instead of the shipped defaults.
+- [ ] Re-running the seeder after categories already exist does not create duplicates (idempotent, case-insensitive match).
 - [ ] Submitting a completed batch to `import-batch` with one row referencing an unknown category returns `422` and creates zero expenses.
 - [ ] `GET /expenses/?category=Uber&date_from=2026-08-01&date_to=2026-08-31` returns only matching rows within range.
-- [ ] Creating a category with a name that differs only by case from an existing one (including `pagamento/estorno` vs `Pagamento/Estorno`) returns `409`.
+- [ ] Creating a category with a name that differs only by case from an existing one (including `payment/refund` vs `Payment/Refund`) returns `409`.
