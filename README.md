@@ -11,7 +11,7 @@ Tracks personal expenses via CSV bank statement import or manual entry, with dyn
 | Layer | Technology |
 | :--- | :--- |
 | Database | MongoDB |
-| Backend | Python 3.11+ / FastAPI / Pydantic v2 / Motor (Beanie ODM) |
+| Backend | Python 3.11+ / FastAPI / Pydantic v2 / Beanie ODM (on PyMongo's native async driver) |
 | Frontend | TypeScript + React (Vite) |
 | Containerization | Docker & Docker Compose |
 | Methodology | GitHub Spec-Driven Development (SDD) |
@@ -39,4 +39,17 @@ The complete project specification, domain requirements, and development roadmap
 
 ## Getting started
 
-Setup instructions will be added as the backend and frontend are scaffolded (Phase 2 and Phase 4 of the roadmap).
+### Backend
+```bash
+cd backend
+python -m venv .venv
+source .venv/Scripts/activate   # Windows Git Bash; use .venv\Scripts\activate on cmd/PowerShell
+pip install -e ".[dev]"
+cp .env.example .env            # adjust MONGODB_URI if needed
+python -m scripts.seed_categories
+uvicorn app.main:app --reload
+```
+Requires a running MongoDB instance (`MONGODB_URI` in `.env`, defaults to `mongodb://localhost:27017`). API docs at `http://localhost:8000/docs` once running. See `backend/README.md` for details.
+
+### Frontend
+Not yet scaffolded (Phase 4 of the roadmap).
