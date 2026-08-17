@@ -1,4 +1,5 @@
 import re
+from collections.abc import Iterable
 
 from pymongo.errors import DuplicateKeyError
 
@@ -40,3 +41,17 @@ async def create_category(data: CategoryCreate, *, is_default: bool = False) -> 
         raise DuplicateCategoryError(data.name) from exc
 
     return _to_response(category)
+
+
+async def seed_default_categories(names: Iterable[str]) -> int:
+    """Inserts any name not already present (case-insensitive) as a default
+    category. Idempotent: safe to call repeatedly. Returns the number of
+    categories actually created. Shared by scripts/seed_categories.py and
+    the test suite's `seeded_categories` fixture, so both use the exact
+    same idempotent-insert logic."""
+    created = 0
+    for name in names:
+        if await find_category_ci(name) is None:
+            await Category(name=name, is_default=True).insert()
+            created += 1
+    return created

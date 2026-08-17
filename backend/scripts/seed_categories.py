@@ -16,8 +16,7 @@ import json
 from pathlib import Path
 
 from app.core.database import close_mongo_connection, connect_to_mongo
-from app.models.category import Category
-from app.services.category_service import find_category_ci
+from app.services.category_service import seed_default_categories
 
 DEFAULT_CATEGORIES_PATH = (
     Path(__file__).resolve().parent.parent / "app" / "core" / "default_categories.json"
@@ -29,11 +28,7 @@ async def seed() -> None:
 
     await connect_to_mongo()
     try:
-        created = 0
-        for name in names:
-            if await find_category_ci(name) is None:
-                await Category(name=name, is_default=True).insert()
-                created += 1
+        created = await seed_default_categories(names)
         skipped = len(names) - created
         print(f"Seeded {created} new categories ({skipped} already existed).")
     finally:

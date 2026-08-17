@@ -23,7 +23,7 @@ async def create_expense(payload: ExpenseCreate) -> ExpenseResponse:
         return await expense_service.create_expense(payload)
     except expense_service.UnknownCategoryError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
         ) from exc
 
 
@@ -57,7 +57,7 @@ async def import_batch(payload: ImportBatchRequest) -> ImportBatchResponse:
         created = await expense_service.create_expenses_batch(payload.expenses)
     except expense_service.ImportBatchValidationError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=[row_error.model_dump() for row_error in exc.row_errors],
         ) from exc
     return ImportBatchResponse(created=created, count=len(created))
