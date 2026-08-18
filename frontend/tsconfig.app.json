@@ -4,7 +4,10 @@
     "target": "es2023",
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
-    "types": ["vite/client"],
+    // "node" is here for test files (Vitest runs under Node, and some
+    // tests -- e.g. format.test.ts's timezone regression test -- need
+    // real process.env access), not for app code, which stays browser-only.
+    "types": ["vite/client", "node"],
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
     "strict": true,

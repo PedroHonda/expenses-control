@@ -36,6 +36,26 @@
       "envFile": "${workspaceFolder}/backend/.env",
       "console": "integratedTerminal",
       "justMyCode": true
+    },
+    {
+      // Requires `npm run dev` already running in frontend/ (separate
+      // terminal) -- this config attaches a debuggable Chrome to it, it
+      // doesn't start the dev server itself. See learning/006.
+      "name": "Chrome: Debug Frontend",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/frontend"
+    },
+    {
+      "name": "Vitest: Debug Current Test File",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/frontend",
+      "program": "${workspaceFolder}/frontend/node_modules/vitest/vitest.mjs",
+      "args": ["run", "${relativeFile}"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
     }
   ]
 }
