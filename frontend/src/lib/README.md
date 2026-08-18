@@ -8,6 +8,9 @@ Shared, non-component application code: the API client and the React Query clien
 
 - **`api.ts`** — a configured `axios` instance (`baseURL` from `VITE_API_BASE_URL`, defaulting to `http://localhost:8000/api/v1` for local dev). All backend calls should go through this instance rather than constructing new `axios` calls with hardcoded URLs, so the base URL only needs to change in one place (e.g. for a Docker Compose setup in Phase 6).
 - **`queryClient.ts`** — the single `QueryClient` instance, provided to the whole app via `QueryClientProvider` in `src/main.tsx`.
+- **`errors.ts`** — `getErrorMessage(error)` (a human-readable string for any caught error) and `getImportBatchRowErrors(error)` (extracts the structured `{index, errors}[]` shape from a failed `import-batch` call specifically, for `CsvReviewTable` to map back to table rows). Both normalize axios's `error.response.data.detail`, which is either a plain string or that array depending on which endpoint failed (spec 01 §5).
+- **`categoryColor.ts`** — `categoryColorClasses(name)`, a deterministic name→Tailwind-class hash used by `CategoryBadge` (spec 02 §6 decision 2).
+- **`format.ts`** — `formatCurrency`/`formatDate`, both `pt-BR`/`BRL` (the target user and sample data are Brazilian; not currently configurable).
 
 ## Why Axios + React Query, not plain `fetch`
 
