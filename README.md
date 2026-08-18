@@ -39,7 +39,18 @@ The complete project specification, domain requirements, and development roadmap
 
 ## Getting started
 
-### Backend
+### Option A: Docker Compose (whole stack, one command)
+```bash
+docker compose up --build
+```
+- Frontend: `http://localhost:8080`
+- Backend API docs: `http://localhost:8000/docs`
+
+See `docker/README.md` and `learning/008_docker_deploy_guide.md` for details — including a flagged caveat: this hasn't been run against a live Docker daemon in this environment, so treat the first `up --build` as a real test.
+
+### Option B: run backend and frontend separately (local dev, hot reload)
+
+**Backend:**
 ```bash
 cd backend
 python -m venv .venv
@@ -51,5 +62,11 @@ uvicorn app.main:app --reload
 ```
 Requires a running MongoDB instance (`MONGODB_URI` in `.env`, defaults to `mongodb://localhost:27017`). API docs at `http://localhost:8000/docs` once running. See `backend/README.md` for details.
 
-### Frontend
-Not yet scaffolded (Phase 4 of the roadmap).
+**Frontend:**
+```bash
+cd frontend
+npm install
+cp .env.example .env   # adjust VITE_API_BASE_URL if needed
+npm run dev
+```
+`http://localhost:5173`, hot module reload. Needs the backend running (Option B above, not Option A) to actually load data. See `frontend/README.md` for details.

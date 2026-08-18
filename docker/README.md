@@ -1,10 +1,26 @@
 # `docker/`
 
 ## Responsibility
-Containerization manifests: multi-stage Dockerfiles for the backend and frontend, and the `docker-compose.yml` orchestrating MongoDB + backend + frontend for local/cloud deployment.
+Multi-stage Dockerfiles for the backend and frontend. Orchestration (`docker-compose.yml`) lives at the repo root — Docker Compose expects to be run from the directory it's in, and keeping it there means `docker compose up` just works from the repo root without extra flags.
 
-## Contents
-Empty as of Phase 0. Populated in Phase 6, after the backend and frontend applications exist to containerize.
+## Files
+- **`backend.Dockerfile`** — two stages: `builder` (installs the app + its runtime dependencies into a venv via `pip install .`) and `runtime` (slim, non-root, no compiler/pip-cache/dev-tooling). Runs the idempotent category seeder on every container start before starting `uvicorn`.
+- **`frontend.Dockerfile`** — two stages: `builder` (`node:24-alpine`, `npm ci` + `npm run build`) and `runtime` (`nginx:alpine` serving the static build — no Node in the final image at all). `frontend/nginx.conf` (not here — see below) configures SPA-fallback routing and long-cache headers for fingerprinted assets.
 
-## Why this approach
-Multi-stage builds keep final images small (build deps excluded from the runtime image). Compose orchestration keeps the three services (db, api, web) reproducible for local development without manually managing each process.
+## Why the Dockerfiles live here but `nginx.conf` doesn't
+
+Each Dockerfile's **build context** is its own service directory (`backend/`, `frontend/`) — so each service's `.dockerignore` applies correctly, and neither build context is bloated with the other service's files or repo-level clutter (`learning/`, `samples/`, etc.). Docker supports the Dockerfile itself living outside its build context (that's what `dockerfile: ../docker/....Dockerfile` in `docker-compose.yml` does), but a `COPY` instruction's *source* path can never reach outside the build context — so `nginx.conf`, which `frontend.Dockerfile`'s runtime stage needs to `COPY`, has to physically live inside `frontend/`, not here.
+
+## Usage
+From the repo root:
+```bash
+docker compose up --build
+```
+- Frontend: `http://localhost:8080`
+- Backend API docs: `http://localhost:8000/docs`
+- MongoDB: `localhost:27017` (exposed for local inspection with Compass/`mongosh`, not required for the app itself)
+
+See `../learning/008_docker_deploy_guide.md` for a full walkthrough, including what to check if something doesn't come up healthy.
+
+## Why multi-stage builds
+Keeps the final runtime images small and low-attack-surface: the backend's runtime image never contains a C compiler or pip's download cache, and the frontend's runtime image never contains Node or `node_modules` at all — only the static files nginx serves. Compose orchestration keeps the three services (db, api, web) reproducible for local development without manually managing each process, and gives each one a healthcheck so `depends_on` waits for actual readiness, not just "the container started."
