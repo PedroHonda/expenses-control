@@ -20,7 +20,7 @@ docker compose up --build
 - Backend API docs: `http://localhost:8000/docs`
 - MongoDB: `localhost:27017` (exposed for local inspection with Compass/`mongosh`, not required for the app itself)
 
-See `../learning/008_docker_deploy_guide.md` for a full walkthrough, including what to check if something doesn't come up healthy.
+Verified working end-to-end (all three services healthy, app fully functional at `:8080`). See `../learning/008_docker_deploy_guide.md` for a full walkthrough, including two real bugs that first run surfaced (an SSL-verification workaround needed on this machine, and a `localhost`-vs-`127.0.0.1` healthcheck fix) and what's still missing for a real (non-localhost) deployment.
 
 ## Why multi-stage builds
 Keeps the final runtime images small and low-attack-surface: the backend's runtime image never contains a C compiler or pip's download cache, and the frontend's runtime image never contains Node or `node_modules` at all — only the static files nginx serves. Compose orchestration keeps the three services (db, api, web) reproducible for local development without manually managing each process, and gives each one a healthcheck so `depends_on` waits for actual readiness, not just "the container started."

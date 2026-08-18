@@ -46,7 +46,7 @@ docker compose up --build
 - Frontend: `http://localhost:8080`
 - Backend API docs: `http://localhost:8000/docs`
 
-See `docker/README.md` and `learning/008_docker_deploy_guide.md` for details — including a flagged caveat: this hasn't been run against a live Docker daemon in this environment, so treat the first `up --build` as a real test.
+See `docker/README.md` and `learning/008_docker_deploy_guide.md` for details.
 
 ### Option B: run backend and frontend separately (local dev, hot reload)
 

@@ -21,7 +21,20 @@ COPY scripts ./scripts
 # `.[dev]` (ruff/black/pytest/httpx/...) is never installed here -- only
 # [project.dependencies] from pyproject.toml, so none of that tooling ends
 # up in the runtime image.
-RUN pip install --no-cache-dir .
+#
+# --trusted-host is a workaround for this dev machine specifically: all
+# outbound HTTPS from inside a container fails TLS verification here (some
+# network-level interception -- confirmed via a raw TLS handshake test to
+# pypi.org from a bare container, unrelated to pip/Python; VPN disconnect
+# didn't fix it, no proxy configured in Docker Desktop or Windows). It does
+# NOT fix the underlying issue, it just stops pip from verifying the
+# certificate chain for these two hosts. Safe to delete this flag (and the
+# matching one in frontend.Dockerfile) once that's actually resolved, or on
+# any machine that doesn't have this problem in the first place.
+RUN pip install --no-cache-dir \
+    --trusted-host pypi.org \
+    --trusted-host files.pythonhosted.org \
+    .
 
 # ---- runtime: no compiler, no pip cache, no dev tooling, non-root ----
 FROM python:3.11-slim AS runtime

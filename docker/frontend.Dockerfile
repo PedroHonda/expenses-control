@@ -16,7 +16,10 @@ WORKDIR /app
 # actually changed -- not on every source edit. (The backend Dockerfile
 # can't get this same separation as cleanly; see its comments.)
 COPY package.json package-lock.json ./
-RUN npm ci
+# --strict-ssl=false is a workaround for this dev machine specifically --
+# see the matching, more detailed comment in docker/backend.Dockerfile.
+# Safe to delete once that underlying network issue is actually resolved.
+RUN npm ci --strict-ssl=false
 
 COPY . .
 
@@ -41,5 +44,10 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
+# 127.0.0.1, not localhost: confirmed live that Alpine (musl libc) resolves
+# "localhost" to ::1 (IPv6) first here, and nginx wasn't reachable there
+# even though it was reachable both on 127.0.0.1 and from outside the
+# container via Docker's port mapping -- wget kept failing with "connection
+# refused" against a server that was demonstrably up.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=5 \
-    CMD wget --quiet --spider http://localhost/ || exit 1
+    CMD wget --quiet --spider http://127.0.0.1/ || exit 1
