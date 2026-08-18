@@ -70,3 +70,16 @@ cp .env.example .env   # adjust VITE_API_BASE_URL if needed
 npm run dev
 ```
 `http://localhost:5173`, hot module reload. Needs the backend running (Option B above, not Option A) to actually load data. See `frontend/README.md` for details.
+
+## Testing
+
+```bash
+# Backend (from backend/, venv active)
+pytest                    # 27 tests: csv_parser unit tests + API integration tests
+
+# Frontend (from frontend/)
+npm test                  # 36 tests: lib unit tests + component tests
+```
+Both suites run against isolated, disposable resources (a separate `expense_tracker_test` MongoDB database for the backend; mocked hooks, no network, for the frontend) — safe to run anytime, won't touch real data. See `learning/003_backend_unit_testing_pytest.md` and `learning/007_frontend_testing_vitest.md` for how each is set up.
+
+Debugging: `.vscode/launch.json` has ready-made configs for both (FastAPI + pytest in VS Code's Python debugger, React + Vitest in its JS debugger) — see `learning/002_backend_debugging_vscode_guide.md` and `learning/006_frontend_debugging_chrome_vscode.md`.
