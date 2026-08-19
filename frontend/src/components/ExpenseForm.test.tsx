@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ExpenseForm } from './ExpenseForm'
-import { useCreateExpense } from '../hooks/useExpenses'
+import { useCreateExpense, useUpdateExpense } from '../hooks/useExpenses'
 import { useCategories, useCreateCategory } from '../hooks/useCategories'
 import { mockMutationResult, mockQueryResult } from '../test/mockHooks'
-import type { Category } from '../types/api'
+import type { Category, ExpenseResponse } from '../types/api'
 
 vi.mock('../hooks/useExpenses')
 vi.mock('../hooks/useCategories')
@@ -14,10 +14,23 @@ const categories: Category[] = [
   { id: '1', name: 'Food', is_default: true, exclude_from_total: false },
 ]
 
+const existingExpense: ExpenseResponse = {
+  id: 'e1',
+  date: '2026-08-10',
+  title: 'Groceries',
+  value: 55,
+  category: 'Food',
+  details: null,
+  trip: null,
+  created_at: '2026-08-10T00:00:00Z',
+  updated_at: '2026-08-10T00:00:00Z',
+}
+
 beforeEach(() => {
   vi.mocked(useCategories).mockReturnValue(mockQueryResult({ data: categories }))
   vi.mocked(useCreateCategory).mockReturnValue(mockMutationResult())
   vi.mocked(useCreateExpense).mockReturnValue(mockMutationResult())
+  vi.mocked(useUpdateExpense).mockReturnValue(mockMutationResult())
 })
 
 describe('ExpenseForm', () => {
@@ -77,5 +90,29 @@ describe('ExpenseForm', () => {
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
+  it('prefills fields and titles itself "Edit Expense" when given an expense', () => {
+    render(<ExpenseForm open onClose={vi.fn()} expense={existingExpense} />)
+
+    expect(screen.getByText('Edit Expense')).toBeInTheDocument()
+    expect(screen.getByLabelText('Title')).toHaveValue('Groceries')
+    expect(screen.getByLabelText('Value')).toHaveValue(55)
+  })
+
+  it('submits an edit via useUpdateExpense with the expense id', async () => {
+    const mutate = vi.fn()
+    vi.mocked(useUpdateExpense).mockReturnValue(mockMutationResult({ mutate }))
+    const user = userEvent.setup()
+    render(<ExpenseForm open onClose={vi.fn()} expense={existingExpense} />)
+
+    await user.clear(screen.getByLabelText('Title'))
+    await user.type(screen.getByLabelText('Title'), 'Groceries and snacks')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(mutate).toHaveBeenCalledTimes(1)
+    const [variables] = mutate.mock.calls[0] as [{ id: string; expense: Record<string, unknown> }]
+    expect(variables.id).toBe('e1')
+    expect(variables.expense).toMatchObject({ title: 'Groceries and snacks', category: 'Food' })
   })
 })

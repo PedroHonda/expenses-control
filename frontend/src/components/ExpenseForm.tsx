@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import type { SubmitEvent } from 'react'
 import { X } from 'lucide-react'
-import { useCreateExpense } from '../hooks/useExpenses'
+import { useCreateExpense, useUpdateExpense } from '../hooks/useExpenses'
 import { CategorySelect } from './CategorySelect'
 import { getErrorMessage } from '../lib/errors'
 import { todayIso } from '../lib/format'
+import type { ExpenseResponse } from '../types/api'
 
 interface ExpenseFormProps {
   open: boolean
   onClose: () => void
+  expense?: ExpenseResponse | null
 }
 
 const emptyForm = {
@@ -20,37 +22,58 @@ const emptyForm = {
   trip: '',
 }
 
-export function ExpenseForm({ open, onClose }: ExpenseFormProps) {
-  const [form, setForm] = useState(emptyForm)
+function formFromExpense(expense: ExpenseResponse) {
+  return {
+    date: expense.date,
+    title: expense.title,
+    value: String(expense.value),
+    category: expense.category,
+    details: expense.details ?? '',
+    trip: expense.trip ?? '',
+  }
+}
+
+/**
+ * The caller must remount this component (e.g. via a `key` that changes
+ * between "closed", "new", and each edited expense's id -- see
+ * DashboardView) whenever a different target opens. That's what lets a
+ * plain `useState` initializer below pick up the right starting values
+ * instead of needing an effect to re-sync form state from a changed prop.
+ */
+export function ExpenseForm({ open, onClose, expense = null }: ExpenseFormProps) {
+  const [form, setForm] = useState(expense ? formFromExpense(expense) : emptyForm)
   const createExpense = useCreateExpense()
+  const updateExpense = useUpdateExpense()
+  const isEditing = expense !== null
+  const mutation = isEditing ? updateExpense : createExpense
 
   if (!open) return null
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
-    createExpense.mutate(
-      {
-        date: form.date,
-        title: form.title.trim(),
-        value: Number(form.value),
-        category: form.category,
-        details: form.details.trim() === '' ? null : form.details.trim(),
-        trip: form.trip.trim() === '' ? null : form.trip.trim(),
-      },
-      {
-        onSuccess: () => {
-          setForm(emptyForm)
-          onClose()
-        },
-      },
-    )
+    const payload = {
+      date: form.date,
+      title: form.title.trim(),
+      value: Number(form.value),
+      category: form.category,
+      details: form.details.trim() === '' ? null : form.details.trim(),
+      trip: form.trip.trim() === '' ? null : form.trip.trim(),
+    }
+    const onSuccess = () => {
+      onClose()
+    }
+    if (isEditing) {
+      updateExpense.mutate({ id: expense.id, expense: payload }, { onSuccess })
+    } else {
+      createExpense.mutate(payload, { onSuccess })
+    }
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Add Expense</h2>
+          <h2 className="text-lg font-semibold">{isEditing ? 'Edit Expense' : 'Add Expense'}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -160,8 +183,8 @@ export function ExpenseForm({ open, onClose }: ExpenseFormProps) {
             />
           </div>
 
-          {createExpense.isError && (
-            <p className="text-sm text-rose-600">{getErrorMessage(createExpense.error)}</p>
+          {mutation.isError && (
+            <p className="text-sm text-rose-600">{getErrorMessage(mutation.error)}</p>
           )}
 
           <div className="flex justify-end gap-2 pt-2">
@@ -174,10 +197,10 @@ export function ExpenseForm({ open, onClose }: ExpenseFormProps) {
             </button>
             <button
               type="submit"
-              disabled={createExpense.isPending || form.category === ''}
+              disabled={mutation.isPending || form.category === ''}
               className="rounded bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
             >
-              {createExpense.isPending ? 'Saving…' : 'Save'}
+              {mutation.isPending ? 'Saving…' : 'Save'}
             </button>
           </div>
         </form>

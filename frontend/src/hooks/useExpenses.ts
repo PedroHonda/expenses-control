@@ -46,3 +46,35 @@ export function useCreateExpense() {
     },
   })
 }
+
+interface UpdateExpenseVariables {
+  id: string
+  expense: ExpenseCreate
+}
+
+export function useUpdateExpense() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ id, expense }: UpdateExpenseVariables) => {
+      const { data } = await api.put<ExpenseResponse>(`/expenses/${id}`, expense)
+      return data
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['expenses'] })
+    },
+  })
+}
+
+export function useDeleteExpense() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/expenses/${id}`)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['expenses'] })
+    },
+  })
+}

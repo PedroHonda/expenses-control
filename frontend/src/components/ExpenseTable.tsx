@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import { useExpenses } from '../hooks/useExpenses'
+import { Pencil, Trash2 } from 'lucide-react'
+import { useDeleteExpense, useExpenses } from '../hooks/useExpenses'
 import type { ExpenseFilters } from '../hooks/useExpenses'
 import { CategoryBadge } from './CategoryBadge'
 import { formatCurrency, formatDate } from '../lib/format'
+import type { ExpenseResponse } from '../types/api'
 
 interface ExpenseTableProps {
   filters: ExpenseFilters
+  onEdit: (expense: ExpenseResponse) => void
 }
 
 const PAGE_SIZE = 25
@@ -16,14 +19,21 @@ const PAGE_SIZE = 25
  * a fresh key remounts the component instead of needing an effect to reset
  * state in response to a prop change (react-hooks/set-state-in-effect).
  */
-export function ExpenseTable({ filters }: ExpenseTableProps) {
+export function ExpenseTable({ filters, onEdit }: ExpenseTableProps) {
   const [page, setPage] = useState(0)
+  const deleteExpense = useDeleteExpense()
 
   const { data, isPending, isError } = useExpenses({
     ...filters,
     skip: page * PAGE_SIZE,
     limit: PAGE_SIZE,
   })
+
+  function handleDelete(expense: ExpenseResponse) {
+    if (window.confirm(`Delete "${expense.title}"? This can't be undone.`)) {
+      deleteExpense.mutate(expense.id)
+    }
+  }
 
   if (isPending) {
     return <p className="p-4 text-sm text-slate-500">Loading expenses…</p>
@@ -52,6 +62,9 @@ export function ExpenseTable({ filters }: ExpenseTableProps) {
               <th className="px-4 py-2">Category</th>
               <th className="px-4 py-2">Trip</th>
               <th className="px-4 py-2">Details</th>
+              <th className="px-4 py-2">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -73,6 +86,31 @@ export function ExpenseTable({ filters }: ExpenseTableProps) {
                   )}
                 </td>
                 <td className="px-4 py-2 text-slate-500">{expense.details ?? ''}</td>
+                <td className="px-4 py-2 whitespace-nowrap">
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onEdit(expense)
+                      }}
+                      aria-label={`Edit ${expense.title}`}
+                      className="text-slate-400 hover:text-slate-700"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleDelete(expense)
+                      }}
+                      disabled={deleteExpense.isPending}
+                      aria-label={`Delete ${expense.title}`}
+                      className="text-slate-400 hover:text-rose-600 disabled:opacity-40"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

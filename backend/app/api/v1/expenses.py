@@ -63,6 +63,26 @@ async def import_batch(payload: ImportBatchRequest) -> ImportBatchResponse:
     return ImportBatchResponse(created=created, count=len(created))
 
 
+@router.put("/{expense_id}", response_model=ExpenseResponse)
+async def update_expense(expense_id: str, payload: ExpenseCreate) -> ExpenseResponse:
+    try:
+        return await expense_service.update_expense(expense_id, payload)
+    except expense_service.ExpenseNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except expense_service.UnknownCategoryError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
+        ) from exc
+
+
+@router.delete("/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_expense(expense_id: str) -> None:
+    try:
+        await expense_service.delete_expense(expense_id)
+    except expense_service.ExpenseNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
 @router.get("/", response_model=ExpenseListResponse)
 async def list_expenses(
     date_from: date | None = None,

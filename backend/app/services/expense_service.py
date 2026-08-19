@@ -1,5 +1,7 @@
 from datetime import UTC, date, datetime
 
+from beanie import PydanticObjectId
+
 from app.models.expense import Expense
 from app.schemas.expense import (
     ExpenseCreate,
@@ -14,6 +16,12 @@ class UnknownCategoryError(Exception):
     def __init__(self, category: str) -> None:
         self.category = category
         super().__init__(f"unknown category: '{category}'")
+
+
+class ExpenseNotFoundError(Exception):
+    def __init__(self, expense_id: str) -> None:
+        self.expense_id = expense_id
+        super().__init__(f"expense not found: '{expense_id}'")
 
 
 class ImportBatchValidationError(Exception):
@@ -44,6 +52,35 @@ async def create_expense(data: ExpenseCreate) -> ExpenseResponse:
     expense = Expense(**data.model_dump(), created_at=now, updated_at=now)
     await expense.insert()
     return _to_response(expense)
+
+
+async def _get_or_raise(expense_id: str) -> Expense:
+    try:
+        expense = await Expense.get(PydanticObjectId(expense_id))
+    except Exception as exc:  # invalid ObjectId format, e.g. "abc"
+        raise ExpenseNotFoundError(expense_id) from exc
+
+    if expense is None:
+        raise ExpenseNotFoundError(expense_id)
+    return expense
+
+
+async def update_expense(expense_id: str, data: ExpenseCreate) -> ExpenseResponse:
+    expense = await _get_or_raise(expense_id)
+
+    if await find_category_ci(data.category) is None:
+        raise UnknownCategoryError(data.category)
+
+    for field, value in data.model_dump().items():
+        setattr(expense, field, value)
+    expense.updated_at = datetime.now(UTC)
+    await expense.save()
+    return _to_response(expense)
+
+
+async def delete_expense(expense_id: str) -> None:
+    expense = await _get_or_raise(expense_id)
+    await expense.delete()
 
 
 async def create_expenses_batch(items: list[ExpenseCreate]) -> list[ExpenseResponse]:
