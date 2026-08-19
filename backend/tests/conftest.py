@@ -18,25 +18,25 @@ from app.services.category_service import seed_default_categories
 # Beanie to a database at all.
 TEST_DB_NAME = "expense_tracker_test"
 
-DEFAULT_CATEGORY_NAMES = [
-    "Parking",
-    "Toll",
-    "Gifts",
-    "Games",
-    "Home",
-    "Supermarket",
-    "Food",
-    "Bakery",
-    "Fuel",
-    "Pharmacy",
-    "Health",
-    "Care",
-    "Entertainment",
-    "Show",
-    "Shopping",
-    "Car",
-    "Uber",
-    "Payment/Refund",
+DEFAULT_CATEGORY_ENTRIES = [
+    {"name": "Parking", "exclude_from_total": False},
+    {"name": "Toll", "exclude_from_total": False},
+    {"name": "Gifts", "exclude_from_total": False},
+    {"name": "Games", "exclude_from_total": False},
+    {"name": "Home", "exclude_from_total": False},
+    {"name": "Supermarket", "exclude_from_total": False},
+    {"name": "Food", "exclude_from_total": False},
+    {"name": "Bakery", "exclude_from_total": False},
+    {"name": "Fuel", "exclude_from_total": False},
+    {"name": "Pharmacy", "exclude_from_total": False},
+    {"name": "Health", "exclude_from_total": False},
+    {"name": "Care", "exclude_from_total": False},
+    {"name": "Entertainment", "exclude_from_total": False},
+    {"name": "Show", "exclude_from_total": False},
+    {"name": "Shopping", "exclude_from_total": False},
+    {"name": "Car", "exclude_from_total": False},
+    {"name": "Uber", "exclude_from_total": False},
+    {"name": "Payment/Refund", "exclude_from_total": True},
 ]
 
 
@@ -69,7 +69,7 @@ async def seeded_categories(mongo_client: AsyncMongoClient) -> None:
     """Opt-in fixture (via `pytestmark = pytest.mark.usefixtures(...)`) for
     tests that need the 18 default categories to exist -- e.g. anything
     that creates an Expense, since category existence is validated."""
-    await seed_default_categories(DEFAULT_CATEGORY_NAMES)
+    await seed_default_categories(DEFAULT_CATEGORY_ENTRIES)
 
 
 @pytest_asyncio.fixture

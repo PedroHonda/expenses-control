@@ -10,7 +10,9 @@ import type { Category } from '../types/api'
 vi.mock('../hooks/useExpenses')
 vi.mock('../hooks/useCategories')
 
-const categories: Category[] = [{ id: '1', name: 'Food', is_default: true }]
+const categories: Category[] = [
+  { id: '1', name: 'Food', is_default: true, exclude_from_total: false },
+]
 
 beforeEach(() => {
   vi.mocked(useCategories).mockReturnValue(mockQueryResult({ data: categories }))

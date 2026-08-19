@@ -6,7 +6,7 @@ React Query hooks — the only place components should reach for server data. No
 
 ## Files
 
-- **`useCategories.ts`** — `useCategories()` (query, key `['categories']`), `useCreateCategory()` (mutation, invalidates `['categories']` on success).
+- **`useCategories.ts`** — `useCategories()` (query, key `['categories']`), `useCreateCategory()` (mutation, invalidates `['categories']` on success), `useUpdateCategory()` (mutation — `PATCH /categories/{id}`, currently just `exclude_from_total`; invalidates `['categories']` on success).
 - **`useExpenses.ts`** — `useExpenses(params)` (query, key `['expenses', params]` — `params` includes filters _and_ `skip`/`limit`, so the paginated table view and the `limit=200` summary fetch are cached as distinct entries, not fighting over one cache slot), `useCreateExpense()` (mutation, invalidates every `['expenses', ...]` entry via React Query's partial key matching).
 - **`useCsvImport.ts`** — `useUploadCsv()` (stage 1, parse-only — no cache invalidation, since nothing was persisted), `useImportBatch()` (stage 2, invalidates `['expenses', ...]` on success).
 

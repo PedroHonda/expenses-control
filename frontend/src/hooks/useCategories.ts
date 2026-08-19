@@ -25,3 +25,22 @@ export function useCreateCategory() {
     },
   })
 }
+
+interface UpdateCategoryVariables {
+  id: string
+  exclude_from_total: boolean
+}
+
+export function useUpdateCategory() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ id, exclude_from_total }: UpdateCategoryVariables) => {
+      const { data } = await api.patch<Category>(`/categories/${id}`, { exclude_from_total })
+      return data
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['categories'] })
+    },
+  })
+}

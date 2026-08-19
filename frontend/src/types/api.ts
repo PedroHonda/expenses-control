@@ -7,6 +7,7 @@ export interface Category {
   id: string
   name: string
   is_default: boolean
+  exclude_from_total: boolean
 }
 
 export interface ExpenseCreate {

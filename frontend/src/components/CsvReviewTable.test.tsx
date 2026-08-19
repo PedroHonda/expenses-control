@@ -11,9 +11,9 @@ vi.mock('../hooks/useCsvImport')
 vi.mock('../hooks/useCategories')
 
 const categories: Category[] = [
-  { id: '1', name: 'Food', is_default: true },
-  { id: '2', name: 'Shopping', is_default: true },
-  { id: '3', name: 'Payment/Refund', is_default: true },
+  { id: '1', name: 'Food', is_default: true, exclude_from_total: false },
+  { id: '2', name: 'Shopping', is_default: true, exclude_from_total: false },
+  { id: '3', name: 'Payment/Refund', is_default: true, exclude_from_total: true },
 ]
 
 // Mirrors what the backend actually returns for

@@ -5,6 +5,7 @@ from pymongo import ASCENDING, IndexModel
 class Category(Document):
     name: str
     is_default: bool = False
+    exclude_from_total: bool = False
 
     class Settings:
         name = "categories"

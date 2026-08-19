@@ -1,5 +1,6 @@
 import { useExpenses } from '../hooks/useExpenses'
 import type { ExpenseFilters } from '../hooks/useExpenses'
+import { useCategories } from '../hooks/useCategories'
 import { formatCurrency } from '../lib/format'
 
 interface SummaryCardsProps {
@@ -13,8 +14,19 @@ const SUMMARY_LIMIT = 200
 
 export function SummaryCards({ filters }: SummaryCardsProps) {
   const { data, isPending } = useExpenses({ ...filters, skip: 0, limit: SUMMARY_LIMIT })
+  const { data: categories } = useCategories()
 
-  const total = data?.items.reduce((sum, item) => sum + item.value, 0) ?? 0
+  // Categories marked "exclude from Total" (spec 03) -- e.g. Payment/Refund
+  // -- are skipped from the money sum, but Count intentionally still
+  // reflects every filtered expense (see spec 03 §2.4).
+  const excludedCategories = new Set(
+    categories?.filter((category) => category.exclude_from_total).map((category) => category.name),
+  )
+  const total =
+    data?.items.reduce(
+      (sum, item) => (excludedCategories.has(item.category) ? sum : sum + item.value),
+      0,
+    ) ?? 0
   const count = data?.total ?? 0
   const isPartial = count > SUMMARY_LIMIT
 

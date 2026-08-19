@@ -24,12 +24,12 @@ DEFAULT_CATEGORIES_PATH = (
 
 
 async def seed() -> None:
-    names = json.loads(DEFAULT_CATEGORIES_PATH.read_text(encoding="utf-8"))
+    entries = json.loads(DEFAULT_CATEGORIES_PATH.read_text(encoding="utf-8"))
 
     await connect_to_mongo()
     try:
-        created = await seed_default_categories(names)
-        skipped = len(names) - created
+        created = await seed_default_categories(entries)
+        skipped = len(entries) - created
         print(f"Seeded {created} new categories ({skipped} already existed).")
     finally:
         await close_mongo_connection()

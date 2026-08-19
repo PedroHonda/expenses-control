@@ -9,8 +9,8 @@ import type { Category } from '../types/api'
 vi.mock('../hooks/useCategories')
 
 const categories: Category[] = [
-  { id: '1', name: 'Uber', is_default: true },
-  { id: '2', name: 'Food', is_default: true },
+  { id: '1', name: 'Uber', is_default: true, exclude_from_total: false },
+  { id: '2', name: 'Food', is_default: true, exclude_from_total: false },
 ]
 
 beforeEach(() => {
