@@ -14,8 +14,10 @@ Each Dockerfile's **build context** is its own service directory (`backend/`, `f
 ## Usage
 From the repo root:
 ```bash
-docker compose up --build
+docker desktop start   # only needed if Docker Desktop isn't already running
+docker compose up -d
 ```
+`docker desktop start` (a Docker Desktop CLI command, not a compose thing) waits until the engine is actually ready and is a no-op if it's already running — without it, a fresh terminal after a reboot gets `failed to connect to the docker API` until Docker Desktop is opened some other way, since it doesn't start on login by default. Skip it entirely by enabling **Docker Desktop → Settings → General → "Start Docker Desktop when you log in"**.
 - Frontend: `http://localhost:8080`
 - Backend API docs: `http://localhost:8000/docs`
 - MongoDB: `localhost:27017` (exposed for local inspection with Compass/`mongosh`, not required for the app itself)

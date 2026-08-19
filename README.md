@@ -41,10 +41,15 @@ The complete project specification, domain requirements, and development roadmap
 
 ### Option A: Docker Compose (whole stack, one command)
 ```bash
-docker compose up --build
+docker desktop start   # only needed if Docker Desktop isn't already running
+docker compose up -d   # -d = detached, runs in the background
 ```
 - Frontend: `http://localhost:8080`
 - Backend API docs: `http://localhost:8000/docs`
+
+Other useful commands: `docker compose ps` (status/health), `docker compose logs -f backend` (tail one service's logs), `docker compose down` (stop everything — Mongo's data survives in a named volume), `docker compose up -d --build` (after editing backend/frontend code, to rebuild the images).
+
+`docker desktop start` waits until the engine is actually ready before returning — Docker Desktop doesn't start automatically on login by default, so without it a fresh terminal after a reboot gets `failed to connect to the docker API` until Docker Desktop is opened some other way. It's a no-op (prints "already running") if it's already up, so it's always safe to run first. To skip this step entirely, enable **Docker Desktop → Settings → General → "Start Docker Desktop when you log in"**.
 
 See `docker/README.md` and `learning/008_docker_deploy_guide.md` for details.
 
