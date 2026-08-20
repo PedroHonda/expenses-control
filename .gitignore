@@ -51,3 +51,6 @@ coverage/
 
 # === Misc ===
 *.pem
+
+# === Batch scripts ===
+docker_rebuild.bat

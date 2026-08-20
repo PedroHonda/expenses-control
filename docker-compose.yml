@@ -4,7 +4,9 @@ services:
     volumes:
       - mongodb_data:/data/db
     ports:
-      - "27017:27017" # optional: lets you connect a local GUI (Compass, mongosh) to inspect data
+      - "27018:27017" # optional: lets you connect a local GUI (Compass, mongosh) to inspect data
+                       # host port 27018 (not 27017) to avoid clashing with a native
+                       # Windows "MongoDB" service that may already own 27017 locally
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
       interval: 5s
