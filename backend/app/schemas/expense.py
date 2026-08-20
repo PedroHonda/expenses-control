@@ -29,6 +29,16 @@ class ExpenseListResponse(BaseModel):
     total: int
 
 
+class CategorySummaryItem(BaseModel):
+    category: str
+    total: float
+    count: int
+
+
+class ExpenseSummaryResponse(BaseModel):
+    items: list[CategorySummaryItem]
+
+
 class ParsedExpenseRow(BaseModel):
     """One row from an uploaded CSV, parsed but not yet persisted.
 

@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
-import type { ExpenseCreate, ExpenseListResponse, ExpenseResponse } from '../types/api'
+import type {
+  ExpenseCreate,
+  ExpenseListResponse,
+  ExpenseResponse,
+  ExpenseSummaryResponse,
+} from '../types/api'
 
 export interface ExpenseFilters {
   dateFrom?: string
@@ -26,6 +31,30 @@ export function useExpenses(params: ExpenseListParams) {
           trip: params.trip,
           skip: params.skip,
           limit: params.limit,
+        },
+      })
+      return data
+    },
+  })
+}
+
+export interface ExpenseSummaryParams {
+  dateFrom?: string
+  dateTo?: string
+}
+
+/** Unpaginated per-category totals for a date range -- backs the Reports
+ * view (spec 06). Unlike `useExpenses`, there's no `limit`/`skip`: the
+ * backend aggregates the whole range server-side, so the Reports view can
+ * toggle category selection client-side without refetching. */
+export function useExpenseSummary(params: ExpenseSummaryParams) {
+  return useQuery({
+    queryKey: ['expense-summary', params],
+    queryFn: async () => {
+      const { data } = await api.get<ExpenseSummaryResponse>('/expenses/summary', {
+        params: {
+          date_from: params.dateFrom,
+          date_to: params.dateTo,
         },
       })
       return data

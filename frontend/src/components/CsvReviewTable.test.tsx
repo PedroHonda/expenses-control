@@ -156,10 +156,7 @@ describe('CsvReviewTable', () => {
     vi.mocked(useImportBatch).mockReturnValue(mockMutationResult())
     const duplicateResult: CSVParseResponse = {
       ...parseResult,
-      rows: [
-        ...parseResult.rows.slice(0, 2),
-        { ...parseResult.rows[2], is_duplicate: true },
-      ],
+      rows: [...parseResult.rows.slice(0, 2), { ...parseResult.rows[2], is_duplicate: true }],
     }
     render(<CsvReviewTable parseResult={duplicateResult} onDone={vi.fn()} />)
 

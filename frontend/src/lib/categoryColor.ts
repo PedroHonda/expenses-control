@@ -21,11 +21,36 @@ const PALETTE = [
   'bg-pink-100 text-pink-700',
 ]
 
-export function categoryColorClasses(name: string): string {
+// Same hue order as PALETTE above, as hex -- Tailwind's -500 shades. Charts
+// (Recharts <Bar fill>/<Cell fill>) take a real CSS color, not a class name,
+// so this is a parallel lookup rather than a derivation from PALETTE.
+const CHART_PALETTE = [
+  '#f43f5e', // rose-500
+  '#f97316', // orange-500
+  '#f59e0b', // amber-500
+  '#84cc16', // lime-500
+  '#10b981', // emerald-500
+  '#14b8a6', // teal-500
+  '#06b6d4', // cyan-500
+  '#0ea5e9', // sky-500
+  '#6366f1', // indigo-500
+  '#8b5cf6', // violet-500
+  '#d946ef', // fuchsia-500
+  '#ec4899', // pink-500
+]
+
+function categoryHashIndex(name: string, paletteLength: number): number {
   let hash = 0
   for (let i = 0; i < name.length; i++) {
     hash = (hash * 31 + name.charCodeAt(i)) | 0
   }
-  const index = Math.abs(hash) % PALETTE.length
-  return PALETTE[index]
+  return Math.abs(hash) % paletteLength
+}
+
+export function categoryColorClasses(name: string): string {
+  return PALETTE[categoryHashIndex(name, PALETTE.length)]
+}
+
+export function categoryChartColor(name: string): string {
+  return CHART_PALETTE[categoryHashIndex(name, CHART_PALETTE.length)]
 }

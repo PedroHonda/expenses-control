@@ -5,9 +5,11 @@ from beanie.operators import In
 
 from app.models.expense import Expense
 from app.schemas.expense import (
+    CategorySummaryItem,
     ExpenseCreate,
     ExpenseListResponse,
     ExpenseResponse,
+    ExpenseSummaryResponse,
     ImportBatchRowError,
 )
 from app.services.category_service import find_category_ci
@@ -154,3 +156,31 @@ async def list_expenses(
     total = await query.count()
     items = await query.sort(-Expense.date).skip(skip).limit(limit).to_list()
     return ExpenseListResponse(items=[_to_response(item) for item in items], total=total)
+
+
+async def get_category_summary(
+    *,
+    date_from: date | None,
+    date_to: date | None,
+) -> ExpenseSummaryResponse:
+    """Per-category totals for a date range, unpaginated -- backs the
+    Reports view (spec 06). Unlike `list_expenses`, this runs a real
+    server-side aggregation rather than a capped client-side sum, since a
+    report is exactly the case a fixed row limit doesn't fit."""
+    query_filters = []
+    if date_from is not None:
+        query_filters.append(Expense.date >= date_from)
+    if date_to is not None:
+        query_filters.append(Expense.date <= date_to)
+
+    pipeline = [
+        {"$group": {"_id": "$category", "total": {"$sum": "$value"}, "count": {"$sum": 1}}},
+        {"$project": {"_id": 0, "category": "$_id", "total": 1, "count": 1}},
+        {"$sort": {"total": -1}},
+    ]
+    items = (
+        await Expense.find(*query_filters)
+        .aggregate(pipeline, projection_model=CategorySummaryItem)
+        .to_list()
+    )
+    return ExpenseSummaryResponse(items=items)

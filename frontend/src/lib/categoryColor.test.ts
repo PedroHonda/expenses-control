@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { categoryColorClasses } from './categoryColor'
+import { categoryChartColor, categoryColorClasses } from './categoryColor'
 
 describe('categoryColorClasses', () => {
   it('is deterministic for the same name', () => {
@@ -16,6 +16,22 @@ describe('categoryColorClasses', () => {
   it('varies across different category names', () => {
     const names = ['Uber', 'Food', 'Health', 'Care', 'Home', 'Car', 'Toll', 'Show']
     const colors = new Set(names.map(categoryColorClasses))
+    expect(colors.size).toBeGreaterThan(1)
+  })
+})
+
+describe('categoryChartColor', () => {
+  it('is deterministic for the same name', () => {
+    expect(categoryChartColor('Uber')).toBe(categoryChartColor('Uber'))
+  })
+
+  it('returns a hex color', () => {
+    expect(categoryChartColor('Food')).toMatch(/^#[0-9a-f]{6}$/)
+  })
+
+  it('varies across different category names', () => {
+    const names = ['Uber', 'Food', 'Health', 'Care', 'Home', 'Car', 'Toll', 'Show']
+    const colors = new Set(names.map(categoryChartColor))
     expect(colors.size).toBeGreaterThan(1)
   })
 })

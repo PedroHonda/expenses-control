@@ -30,6 +30,16 @@ export interface ExpenseListResponse {
   total: number
 }
 
+export interface CategorySummaryItem {
+  category: string
+  total: number
+  count: number
+}
+
+export interface ExpenseSummaryResponse {
+  items: CategorySummaryItem[]
+}
+
 export interface ParsedExpenseRow {
   row_index: number
   date: string | null

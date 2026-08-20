@@ -7,6 +7,7 @@ from app.schemas.expense import (
     ExpenseCreate,
     ExpenseListResponse,
     ExpenseResponse,
+    ExpenseSummaryResponse,
     ImportBatchRequest,
     ImportBatchResponse,
 )
@@ -73,6 +74,17 @@ async def import_batch(payload: ImportBatchRequest) -> ImportBatchResponse:
             detail=[row_error.model_dump() for row_error in exc.row_errors],
         ) from exc
     return ImportBatchResponse(created=created, count=len(created))
+
+
+@router.get("/summary", response_model=ExpenseSummaryResponse)
+async def get_expense_summary(
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> ExpenseSummaryResponse:
+    """Unpaginated per-category totals for a date range. Backs the Reports
+    view (spec 06) -- see `expense_service.get_category_summary` for why
+    this is a real aggregation rather than reusing `list_expenses`."""
+    return await expense_service.get_category_summary(date_from=date_from, date_to=date_to)
 
 
 @router.put("/{expense_id}", response_model=ExpenseResponse)

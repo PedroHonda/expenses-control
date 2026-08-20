@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Settings, Upload, Wallet } from 'lucide-react'
+import { BarChart3, Settings, Upload, Wallet } from 'lucide-react'
 import { DashboardView } from './components/DashboardView'
 import { CsvImportView } from './components/CsvImportView'
 import { SettingsView } from './components/SettingsView'
+import { ReportsView } from './components/ReportsView'
 
-type View = 'dashboard' | 'import' | 'settings'
+type View = 'dashboard' | 'import' | 'settings' | 'reports'
 
 function App() {
   const [view, setView] = useState<View>('dashboard')
@@ -15,6 +16,8 @@ function App() {
         return <CsvImportView />
       case 'settings':
         return <SettingsView />
+      case 'reports':
+        return <ReportsView />
       case 'dashboard':
         return <DashboardView />
     }
@@ -34,6 +37,16 @@ function App() {
           <h1 className="text-lg font-semibold">Expense Tracker</h1>
         </button>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setView((current) => (current === 'reports' ? 'dashboard' : 'reports'))
+            }}
+            className="flex items-center gap-1 rounded border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <BarChart3 className="h-4 w-4" aria-hidden="true" />
+            {view === 'reports' ? 'Back to Dashboard' : 'Reports'}
+          </button>
           <button
             type="button"
             onClick={() => {

@@ -179,3 +179,61 @@ async def test_list_expenses_filters_by_trip(client: AsyncClient) -> None:
     response = await client.get("/api/v1/expenses/", params={"trip": "Serra Trip"})
 
     assert response.json()["total"] == 1
+
+
+async def test_expense_summary_groups_by_category(client: AsyncClient) -> None:
+    await client.post(
+        "/api/v1/expenses/",
+        json={"date": "2026-08-01", "title": "Groceries", "value": 100, "category": "Supermarket"},
+    )
+    await client.post(
+        "/api/v1/expenses/",
+        json={
+            "date": "2026-08-05",
+            "title": "More groceries",
+            "value": 50,
+            "category": "Supermarket",
+        },
+    )
+    await client.post(
+        "/api/v1/expenses/",
+        json={"date": "2026-08-03", "title": "Ride", "value": 20, "category": "Uber"},
+    )
+
+    response = await client.get("/api/v1/expenses/summary")
+
+    assert response.status_code == 200
+    items = {item["category"]: item for item in response.json()["items"]}
+    assert items["Supermarket"]["total"] == pytest.approx(150)
+    assert items["Supermarket"]["count"] == 2
+    assert items["Uber"]["total"] == pytest.approx(20)
+    assert items["Uber"]["count"] == 1
+    # Sorted by total descending.
+    assert [item["category"] for item in response.json()["items"][:2]] == ["Supermarket", "Uber"]
+
+
+async def test_expense_summary_filters_by_date_range(client: AsyncClient) -> None:
+    await client.post(
+        "/api/v1/expenses/",
+        json={"date": "2026-08-01", "title": "In range", "value": 10, "category": "Uber"},
+    )
+    await client.post(
+        "/api/v1/expenses/",
+        json={"date": "2026-09-01", "title": "Out of range", "value": 999, "category": "Uber"},
+    )
+
+    response = await client.get(
+        "/api/v1/expenses/summary",
+        params={"date_from": "2026-08-01", "date_to": "2026-08-31"},
+    )
+
+    items = response.json()["items"]
+    assert len(items) == 1
+    assert items[0] == {"category": "Uber", "total": pytest.approx(10), "count": 1}
+
+
+async def test_expense_summary_empty_when_no_expenses(client: AsyncClient) -> None:
+    response = await client.get("/api/v1/expenses/summary")
+
+    assert response.status_code == 200
+    assert response.json()["items"] == []
