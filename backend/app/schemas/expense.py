@@ -46,6 +46,7 @@ class ParsedExpenseRow(BaseModel):
     missing_required: list[str] = Field(default_factory=list)
     parse_errors: list[str] = Field(default_factory=list)
     raw: dict[str, str] = Field(default_factory=dict)
+    is_duplicate: bool = False
 
 
 class CSVParseResponse(BaseModel):

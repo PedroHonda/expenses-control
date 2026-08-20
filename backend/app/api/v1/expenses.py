@@ -42,9 +42,21 @@ async def upload_csv(file: UploadFile = File(...)) -> CSVParseResponse:
         )
 
     try:
-        return csv_parser.parse_csv(content, filename=file.filename or "upload.csv")
+        parsed = csv_parser.parse_csv(content, filename=file.filename or "upload.csv")
     except csv_parser.CsvParseError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    candidates = [
+        (row.date, row.title, row.value)
+        for row in parsed.rows
+        if row.date is not None and row.title is not None and row.value is not None
+    ]
+    duplicate_keys = await expense_service.find_duplicate_keys(candidates)
+    for row in parsed.rows:
+        if row.date is not None and row.title is not None and row.value is not None:
+            row.is_duplicate = (row.date, row.title, row.value) in duplicate_keys
+
+    return parsed
 
 
 @router.post(

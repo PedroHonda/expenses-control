@@ -1,6 +1,7 @@
 from datetime import UTC, date, datetime
 
 from beanie import PydanticObjectId
+from beanie.operators import In
 
 from app.models.expense import Expense
 from app.schemas.expense import (
@@ -106,6 +107,28 @@ async def create_expenses_batch(items: list[ExpenseCreate]) -> list[ExpenseRespo
     for doc, inserted_id in zip(docs, result.inserted_ids, strict=True):
         doc.id = inserted_id
     return [_to_response(doc) for doc in docs]
+
+
+async def find_duplicate_keys(
+    candidates: list[tuple[date, str, float]],
+) -> set[tuple[date, str, float]]:
+    """Given candidate (date, title, value) triples -- typically freshly
+    parsed CSV rows -- returns the subset that already exist as a persisted
+    Expense with the same date, the same value, and a title that matches
+    case-insensitively. Used to pre-flag likely re-imports of a bill the
+    user already entered."""
+    if not candidates:
+        return set()
+
+    dates = {candidate[0] for candidate in candidates}
+    existing = await Expense.find(In(Expense.date, list(dates))).to_list()
+    existing_keys = {(item.date, item.title.strip().lower(), item.value) for item in existing}
+
+    return {
+        candidate
+        for candidate in candidates
+        if (candidate[0], candidate[1].strip().lower(), candidate[2]) in existing_keys
+    }
 
 
 async def list_expenses(

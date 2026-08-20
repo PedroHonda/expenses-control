@@ -35,6 +35,7 @@ const parseResult: CSVParseResponse = {
       missing_required: ['category'],
       parse_errors: [],
       raw: {},
+      is_duplicate: false,
     },
     {
       row_index: 1,
@@ -47,6 +48,7 @@ const parseResult: CSVParseResponse = {
       missing_required: ['category'],
       parse_errors: [],
       raw: {},
+      is_duplicate: false,
     },
     {
       row_index: 2,
@@ -59,6 +61,7 @@ const parseResult: CSVParseResponse = {
       missing_required: [],
       parse_errors: [],
       raw: {},
+      is_duplicate: false,
     },
   ],
 }
@@ -147,6 +150,28 @@ describe('CsvReviewTable', () => {
     await user.click(screen.getByRole('button', { name: /Submit 3 expenses/ }))
 
     expect(screen.getByText('Imported 3 expenses.')).toBeInTheDocument()
+  })
+
+  it('unchecks a duplicate row by default and flags it with a warning', () => {
+    vi.mocked(useImportBatch).mockReturnValue(mockMutationResult())
+    const duplicateResult: CSVParseResponse = {
+      ...parseResult,
+      rows: [
+        ...parseResult.rows.slice(0, 2),
+        { ...parseResult.rows[2], is_duplicate: true },
+      ],
+    }
+    render(<CsvReviewTable parseResult={duplicateResult} onDone={vi.fn()} />)
+
+    const checkboxes = screen.getAllByRole('checkbox')
+    expect(checkboxes[2]).not.toBeChecked()
+    expect(checkboxes[2].closest('span')).toHaveAttribute(
+      'title',
+      expect.stringContaining('Possible duplicate'),
+    )
+    // The other rows are untouched.
+    expect(checkboxes[0]).toBeChecked()
+    expect(checkboxes[1]).toBeChecked()
   })
 
   it('maps a batch-index validation error back to the correct original row', async () => {

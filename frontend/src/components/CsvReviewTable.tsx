@@ -23,9 +23,13 @@ interface EditableRow {
   details: string
   trip: string
   excluded: boolean
+  isDuplicate: boolean
   parseErrors: string[]
   submitError: string | null
 }
+
+const DUPLICATE_WARNING =
+  'Possible duplicate: an expense with the same date, title, and value already exists. Excluded by default -- check the box to import it anyway.'
 
 function toEditableRow(row: ParsedExpenseRow): EditableRow {
   return {
@@ -36,7 +40,8 @@ function toEditableRow(row: ParsedExpenseRow): EditableRow {
     category: row.category ?? '',
     details: row.details ?? '',
     trip: row.trip ?? '',
-    excluded: false,
+    excluded: row.is_duplicate,
+    isDuplicate: row.is_duplicate,
     parseErrors: row.parse_errors,
     submitError: null,
   }
@@ -150,16 +155,23 @@ export function CsvReviewTable({ parseResult, onDone }: CsvReviewTableProps) {
                     className={row.excluded ? 'opacity-40' : incomplete ? 'bg-amber-50' : undefined}
                   >
                     <td className="px-3 py-2">
-                      <input
-                        type="checkbox"
-                        checked={!row.excluded}
-                        onChange={(event) => {
-                          setRows((prev) =>
-                            updateRow(prev, row.rowIndex, { excluded: !event.target.checked }),
-                          )
-                        }}
-                        aria-label={`Include row ${String(row.rowIndex + 1)}`}
-                      />
+                      <span title={row.isDuplicate ? DUPLICATE_WARNING : undefined}>
+                        <input
+                          type="checkbox"
+                          checked={!row.excluded}
+                          onChange={(event) => {
+                            setRows((prev) =>
+                              updateRow(prev, row.rowIndex, { excluded: !event.target.checked }),
+                            )
+                          }}
+                          aria-label={`Include row ${String(row.rowIndex + 1)}`}
+                        />
+                        {row.isDuplicate && (
+                          <span className="ml-1 text-amber-600" aria-hidden="true">
+                            ⚠
+                          </span>
+                        )}
+                      </span>
                     </td>
                     <td className="px-3 py-2">
                       <input

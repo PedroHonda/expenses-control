@@ -3,6 +3,8 @@ from pathlib import Path
 import pytest
 from httpx import AsyncClient
 
+from app.models.expense import Expense
+
 pytestmark = pytest.mark.usefixtures("seeded_categories")
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "sample_bank_export.csv"
@@ -30,6 +32,30 @@ async def test_upload_csv_parses_without_persisting_anything(client: AsyncClient
     # Stage 1 is parse-only: nothing should be in the database yet.
     list_response = await client.get("/api/v1/expenses/")
     assert list_response.json()["total"] == 0
+
+
+async def test_upload_csv_flags_rows_matching_an_existing_expense(client: AsyncClient) -> None:
+    # Pre-existing expense that matches row 0 of the fixture exactly (same
+    # date, title, value) -- title case and category are irrelevant to the
+    # match.
+    await Expense(
+        date="2026-08-01",
+        title="test merchant a",
+        value=38.97,
+        category="Food",
+    ).insert()
+
+    with FIXTURE_PATH.open("rb") as f:
+        response = await client.post(
+            "/api/v1/expenses/upload-csv",
+            files={"file": ("sample_bank_export.csv", f, "text/csv")},
+        )
+
+    assert response.status_code == 200
+    rows = {row["title"]: row["is_duplicate"] for row in response.json()["rows"]}
+    assert rows["Test Merchant A"] is True
+    assert rows["Test Merchant B"] is False
+    assert rows["Bill Payment"] is False
 
 
 async def test_upload_csv_rejects_non_csv_extension(client: AsyncClient) -> None:

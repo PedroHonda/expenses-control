@@ -4,7 +4,7 @@
 Pydantic DTOs (data transfer objects) that define the HTTP request/response shapes for the API, exactly as specified in `.github/specs/01_api_contract.spec.md` §3. These are **not** the same classes as `app/models/` — a request/response shape and a database document are different concerns that happen to overlap in fields.
 
 ## Files
-- **`expense.py`** — `ExpenseCreate` (input), `ExpenseResponse` (output, extends `ExpenseCreate` with server-set `id`/`created_at`/`updated_at`), `ExpenseListResponse` (paginated list), and the CSV-import-specific shapes: `ParsedExpenseRow` (stage 1 — every field optional, since a parsed row may be incomplete), `CSVParseResponse`, `ImportBatchRequest`/`ImportBatchRowError`/`ImportBatchResponse` (stage 2).
+- **`expense.py`** — `ExpenseCreate` (input), `ExpenseResponse` (output, extends `ExpenseCreate` with server-set `id`/`created_at`/`updated_at`), `ExpenseListResponse` (paginated list), and the CSV-import-specific shapes: `ParsedExpenseRow` (stage 1 — every field optional, since a parsed row may be incomplete; `is_duplicate` defaults `False` and is only set by the `upload-csv` route after parsing, since the parser itself has no database access), `CSVParseResponse`, `ImportBatchRequest`/`ImportBatchRowError`/`ImportBatchResponse` (stage 2).
 - **`category.py`** — `CategoryCreate` (input), `CategoryUpdate` (input for `PATCH /categories/{id}` — currently just `exclude_from_total`), `CategoryResponse` (output, includes `exclude_from_total`).
 
 ## Why DTOs are separate from `app/models/` Documents

@@ -41,6 +41,7 @@ export interface ParsedExpenseRow {
   missing_required: string[]
   parse_errors: string[]
   raw: Record<string, string>
+  is_duplicate: boolean
 }
 
 export interface CSVParseResponse {
