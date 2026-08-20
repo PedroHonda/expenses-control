@@ -47,7 +47,13 @@ docker compose up -d   # -d = detached, runs in the background
 - Frontend: `http://localhost:8080`
 - Backend API docs: `http://localhost:8000/docs`
 
-Other useful commands: `docker compose ps` (status/health), `docker compose logs -f backend` (tail one service's logs), `docker compose down` (stop everything — Mongo's data survives in a named volume), `docker compose up -d --build` (after editing backend/frontend code, to rebuild the images).
+Other useful commands: `docker compose ps` (status/health), `docker compose logs -f backend` (tail one service's logs), `docker compose down` (stop everything — Mongo's data survives in a named volume).
+
+**No hot reload under Option A.** `docker compose up -d` alone only (re)creates containers from the images that already exist — it does not pick up code changes on disk. After editing backend or frontend code, rebuild the images and recreate the containers:
+```bash
+docker compose up -d --build backend frontend
+```
+Skip this and the containers keep serving the old code, which looks like "the change didn't work" even though the edit is correct. Mongo doesn't need `--build` (its image never changes), which is why it's left out above; add it back (`docker compose up -d --build`, no service names) if you ever want to rebuild everything at once.
 
 `docker desktop start` waits until the engine is actually ready before returning — Docker Desktop doesn't start automatically on login by default, so without it a fresh terminal after a reboot gets `failed to connect to the docker API` until Docker Desktop is opened some other way. It's a no-op (prints "already running") if it's already up, so it's always safe to run first. To skip this step entirely, enable **Docker Desktop → Settings → General → "Start Docker Desktop when you log in"**.
 
