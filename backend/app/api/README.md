@@ -7,12 +7,13 @@ The HTTP layer: FastAPI routers that parse requests, call into `app/services/`, 
 ```
 api/
 └── v1/
-    ├── router.py      # aggregates all v1 routers into one api_router
-    ├── expenses.py    # POST /expenses/, POST /expenses/upload-csv, POST /expenses/import-batch, GET /expenses/
-    └── categories.py  # GET /categories/, POST /categories/
+    ├── router.py          # aggregates all v1 routers into one api_router
+    ├── expenses.py        # POST /expenses/, POST /expenses/upload-csv, POST /expenses/import-batch, GET /expenses/
+    ├── categories.py      # GET /categories/, POST /categories/
+    └── payment_methods.py # GET /payment-methods/, POST /payment-methods/, PATCH /payment-methods/{id}
 ```
 
 Versioning under `v1/` (mounted at `/api/v1` in `app/main.py`) means a future breaking change can live in a `v2/` package without touching this one.
 
 ## Why exceptions map to HTTP codes here, not in services
-`app/services/*.py` raises plain Python exceptions (`UnknownCategoryError`, `DuplicateCategoryError`, `ImportBatchValidationError`, `csv_parser.CsvParseError`) — it has no concept of "422" or "409". Each route's `try/except` is where a domain error becomes a specific `HTTPException`. This keeps the services importable and testable without pulling in FastAPI at all (see `../services/README.md`).
+`app/services/*.py` raises plain Python exceptions (`UnknownCategoryError`, `UnknownPaymentMethodError`, `DuplicateCategoryError`, `DuplicatePaymentMethodError`, `CannotUnsetDefaultImportError`, `ImportBatchValidationError`, `csv_parser.CsvParseError`) — it has no concept of "422" or "409". Each route's `try/except` is where a domain error becomes a specific `HTTPException`. This keeps the services importable and testable without pulling in FastAPI at all (see `../services/README.md`).

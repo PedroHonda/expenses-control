@@ -11,6 +11,7 @@ class Expense(Document):
     title: str
     value: float
     category: str
+    payment_method: str
     details: str | None = None
     trip: str | None = None
     created_at: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.UTC))

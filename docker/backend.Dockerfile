@@ -63,8 +63,9 @@ EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
     CMD python -c "import urllib.request as u; u.urlopen('http://localhost:8000/health', timeout=2)" || exit 1
 
-# Re-seeding is idempotent (category_service.seed_default_categories skips
-# names that already exist) -- running it on every container start, not
-# just the first, means `docker compose up` always leaves a usable database
-# with no separate manual seeding step, whether this is a fresh volume or not.
-CMD ["sh", "-c", "python -m scripts.seed_categories && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+# Re-seeding is idempotent (category_service.seed_default_categories /
+# payment_method_service.seed_default_payment_methods both skip names that
+# already exist) -- running these on every container start, not just the
+# first, means `docker compose up` always leaves a usable database with no
+# separate manual seeding step, whether this is a fresh volume or not.
+CMD ["sh", "-c", "python -m scripts.seed_categories && python -m scripts.seed_payment_methods && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

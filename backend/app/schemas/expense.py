@@ -14,6 +14,7 @@ class ExpenseCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     value: float = Field(gt=0)
     category: str
+    payment_method: str
     details: str | None = Field(default=None, max_length=1000)
     trip: str | None = Field(default=None, max_length=100)
 
@@ -63,6 +64,7 @@ class ParsedExpenseRow(BaseModel):
     title: str | None = None
     value: float | None = None
     category: str | None = None
+    payment_method: str | None = None
     details: str | None = None
     trip: str | None = None
     missing_required: list[str] = Field(default_factory=list)

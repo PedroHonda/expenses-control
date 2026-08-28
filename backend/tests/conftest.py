@@ -9,7 +9,9 @@ from app.core.config import get_settings
 from app.main import app
 from app.models.category import Category
 from app.models.expense import Expense
+from app.models.payment_method import PaymentMethod
 from app.services.category_service import seed_default_categories
+from app.services.payment_method_service import seed_default_payment_methods
 
 # A dedicated, disposable database -- never the real MONGODB_DB_NAME from
 # .env. The app's own lifespan (which connects to the real database) is
@@ -39,15 +41,24 @@ DEFAULT_CATEGORY_ENTRIES = [
     {"name": "Payment/Refund", "exclude_from_total": True},
 ]
 
+DEFAULT_PAYMENT_METHOD_ENTRIES = [
+    {"name": "Nubank", "is_default_for_import": True},
+    {"name": "Pix", "is_default_for_import": False},
+    {"name": "Mercado Pago", "is_default_for_import": False},
+]
+
 
 @pytest_asyncio.fixture(scope="session")
 async def mongo_client() -> AsyncIterator[AsyncMongoClient]:
     settings = get_settings()
     client = AsyncMongoClient(settings.mongodb_uri)
-    await init_beanie(database=client[TEST_DB_NAME], document_models=[Expense, Category])
+    await init_beanie(
+        database=client[TEST_DB_NAME], document_models=[Expense, Category, PaymentMethod]
+    )
     # Guard against leftovers from a previous interrupted run.
     await Expense.delete_all()
     await Category.delete_all()
+    await PaymentMethod.delete_all()
 
     yield client
 
@@ -62,6 +73,7 @@ async def clean_db(mongo_client: AsyncMongoClient) -> AsyncIterator[None]:
     yield
     await Expense.delete_all()
     await Category.delete_all()
+    await PaymentMethod.delete_all()
 
 
 @pytest_asyncio.fixture
@@ -70,6 +82,13 @@ async def seeded_categories(mongo_client: AsyncMongoClient) -> None:
     tests that need the 18 default categories to exist -- e.g. anything
     that creates an Expense, since category existence is validated."""
     await seed_default_categories(DEFAULT_CATEGORY_ENTRIES)
+
+
+@pytest_asyncio.fixture
+async def seeded_payment_methods(mongo_client: AsyncMongoClient) -> None:
+    """Opt-in fixture, mirroring seeded_categories -- needed by anything
+    that creates an Expense, since payment_method existence is validated."""
+    await seed_default_payment_methods(DEFAULT_PAYMENT_METHOD_ENTRIES)
 
 
 @pytest_asyncio.fixture

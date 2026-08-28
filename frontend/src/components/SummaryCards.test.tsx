@@ -21,6 +21,7 @@ function makeExpense(overrides: Partial<ExpenseResponse>): ExpenseResponse {
     title: 'Item',
     value: 0,
     category: 'Food',
+    payment_method: 'Nubank',
     created_at: '2026-08-01T00:00:00Z',
     updated_at: '2026-08-01T00:00:00Z',
     ...overrides,

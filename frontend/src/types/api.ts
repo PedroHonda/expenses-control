@@ -10,11 +10,19 @@ export interface Category {
   exclude_from_total: boolean
 }
 
+export interface PaymentMethod {
+  id: string
+  name: string
+  is_default: boolean
+  is_default_for_import: boolean
+}
+
 export interface ExpenseCreate {
   date: string
   title: string
   value: number
   category: string
+  payment_method: string
   details?: string | null
   trip?: string | null
 }
@@ -58,6 +66,7 @@ export interface ParsedExpenseRow {
   title: string | null
   value: number | null
   category: string | null
+  payment_method: string | null
   details: string | null
   trip: string | null
   missing_required: string[]

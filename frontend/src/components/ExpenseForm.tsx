@@ -2,7 +2,9 @@ import { useState } from 'react'
 import type { SubmitEvent } from 'react'
 import { X } from 'lucide-react'
 import { useCreateExpense, useUpdateExpense } from '../hooks/useExpenses'
+import { usePaymentMethods } from '../hooks/usePaymentMethods'
 import { CategorySelect } from './CategorySelect'
+import { PaymentMethodSelect } from './PaymentMethodSelect'
 import { getErrorMessage } from '../lib/errors'
 import { todayIso } from '../lib/format'
 import type { ExpenseResponse } from '../types/api'
@@ -18,6 +20,7 @@ const emptyForm = {
   title: '',
   value: '',
   category: '',
+  paymentMethod: '',
   details: '',
   trip: '',
 }
@@ -28,6 +31,7 @@ function formFromExpense(expense: ExpenseResponse) {
     title: expense.title,
     value: String(expense.value),
     category: expense.category,
+    paymentMethod: expense.payment_method,
     details: expense.details ?? '',
     trip: expense.trip ?? '',
   }
@@ -44,8 +48,18 @@ export function ExpenseForm({ open, onClose, expense = null }: ExpenseFormProps)
   const [form, setForm] = useState(expense ? formFromExpense(expense) : emptyForm)
   const createExpense = useCreateExpense()
   const updateExpense = useUpdateExpense()
+  const { data: paymentMethods } = usePaymentMethods()
   const isEditing = expense !== null
   const mutation = isEditing ? updateExpense : createExpense
+
+  // Derived default, same "no useEffect" reasoning as ReportsView's
+  // selected-categories default: `form.paymentMethod` starts '' for a new
+  // expense (the CSV-import default may still be loading at first render),
+  // and falls back to it here rather than syncing state once it arrives.
+  // Once the user (or formFromExpense, when editing) sets a real value,
+  // that value wins.
+  const defaultPaymentMethod = paymentMethods?.find((m) => m.is_default_for_import)?.name ?? ''
+  const effectivePaymentMethod = form.paymentMethod || defaultPaymentMethod
 
   if (!open) return null
 
@@ -56,6 +70,7 @@ export function ExpenseForm({ open, onClose, expense = null }: ExpenseFormProps)
       title: form.title.trim(),
       value: Number(form.value),
       category: form.category,
+      payment_method: effectivePaymentMethod,
       details: form.details.trim() === '' ? null : form.details.trim(),
       trip: form.trip.trim() === '' ? null : form.trip.trim(),
     }
@@ -152,6 +167,23 @@ export function ExpenseForm({ open, onClose, expense = null }: ExpenseFormProps)
           </div>
 
           <div>
+            <label
+              htmlFor="expense-payment-method"
+              className="block text-sm font-medium text-slate-700"
+            >
+              Payment Method
+            </label>
+            <PaymentMethodSelect
+              id="expense-payment-method"
+              value={effectivePaymentMethod}
+              onChange={(value) => {
+                setForm((f) => ({ ...f, paymentMethod: value }))
+              }}
+              required
+            />
+          </div>
+
+          <div>
             <label htmlFor="expense-trip" className="block text-sm font-medium text-slate-700">
               Trip (optional)
             </label>
@@ -197,7 +229,7 @@ export function ExpenseForm({ open, onClose, expense = null }: ExpenseFormProps)
             </button>
             <button
               type="submit"
-              disabled={mutation.isPending || form.category === ''}
+              disabled={mutation.isPending || form.category === '' || effectivePaymentMethod === ''}
               className="rounded bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
             >
               {mutation.isPending ? 'Saving…' : 'Save'}

@@ -15,12 +15,19 @@ from app.schemas.expense import (
     MonthlySummaryItem,
 )
 from app.services.category_service import find_category_ci
+from app.services.payment_method_service import find_payment_method_ci
 
 
 class UnknownCategoryError(Exception):
     def __init__(self, category: str) -> None:
         self.category = category
         super().__init__(f"unknown category: '{category}'")
+
+
+class UnknownPaymentMethodError(Exception):
+    def __init__(self, payment_method: str) -> None:
+        self.payment_method = payment_method
+        super().__init__(f"unknown payment method: '{payment_method}'")
 
 
 class ExpenseNotFoundError(Exception):
@@ -42,6 +49,7 @@ def _to_response(expense: Expense) -> ExpenseResponse:
         title=expense.title,
         value=expense.value,
         category=expense.category,
+        payment_method=expense.payment_method,
         details=expense.details,
         trip=expense.trip,
         created_at=expense.created_at,
@@ -52,6 +60,8 @@ def _to_response(expense: Expense) -> ExpenseResponse:
 async def create_expense(data: ExpenseCreate) -> ExpenseResponse:
     if await find_category_ci(data.category) is None:
         raise UnknownCategoryError(data.category)
+    if await find_payment_method_ci(data.payment_method) is None:
+        raise UnknownPaymentMethodError(data.payment_method)
 
     now = datetime.now(UTC)
     expense = Expense(**data.model_dump(), created_at=now, updated_at=now)
@@ -75,6 +85,8 @@ async def update_expense(expense_id: str, data: ExpenseCreate) -> ExpenseRespons
 
     if await find_category_ci(data.category) is None:
         raise UnknownCategoryError(data.category)
+    if await find_payment_method_ci(data.payment_method) is None:
+        raise UnknownPaymentMethodError(data.payment_method)
 
     for field, value in data.model_dump().items():
         setattr(expense, field, value)
@@ -94,10 +106,13 @@ async def create_expenses_batch(items: list[ExpenseCreate]) -> list[ExpenseRespo
     caller can report which table rows need fixing."""
     row_errors: list[ImportBatchRowError] = []
     for index, item in enumerate(items):
+        errors = []
         if await find_category_ci(item.category) is None:
-            row_errors.append(
-                ImportBatchRowError(index=index, errors=[f"unknown category: '{item.category}'"])
-            )
+            errors.append(f"unknown category: '{item.category}'")
+        if await find_payment_method_ci(item.payment_method) is None:
+            errors.append(f"unknown payment method: '{item.payment_method}'")
+        if errors:
+            row_errors.append(ImportBatchRowError(index=index, errors=errors))
 
     if row_errors:
         raise ImportBatchValidationError(row_errors)

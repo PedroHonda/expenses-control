@@ -102,3 +102,21 @@ class TestParseCsv:
     def test_empty_file_raises_csv_parse_error(self) -> None:
         with pytest.raises(CsvParseError):
             parse_csv(b"", filename="empty.csv")
+
+    def test_payment_method_column_is_recognized_but_not_required(self) -> None:
+        # A file WITH the column: parsed and never flagged missing, since
+        # payment_method isn't in REQUIRED_FIELDS -- the DB-dependent default
+        # fill (when the column is absent) happens in the upload-csv route,
+        # not here (see module docstring / spec 08 §2.3).
+        with_column = parse_csv(
+            b"date,title,amount,payment_method\r\n2026-08-01,Store,10.00,Pix\r\n",
+            filename="test.csv",
+        )
+        assert with_column.rows[0].payment_method == "Pix"
+        assert "payment_method" not in with_column.rows[0].missing_required
+
+        without_column = parse_csv(
+            b"date,title,amount\r\n2026-08-01,Store,10.00\r\n", filename="test.csv"
+        )
+        assert without_column.rows[0].payment_method is None
+        assert "payment_method" not in without_column.rows[0].missing_required

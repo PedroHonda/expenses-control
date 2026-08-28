@@ -4,6 +4,7 @@ from pymongo import AsyncMongoClient
 from app.core.config import get_settings
 from app.models.category import Category
 from app.models.expense import Expense
+from app.models.payment_method import PaymentMethod
 
 _client: AsyncMongoClient | None = None
 
@@ -14,7 +15,7 @@ async def connect_to_mongo() -> None:
     _client = AsyncMongoClient(settings.mongodb_uri)
     await init_beanie(
         database=_client[settings.mongodb_db_name],
-        document_models=[Expense, Category],
+        document_models=[Expense, Category, PaymentMethod],
     )
 
 

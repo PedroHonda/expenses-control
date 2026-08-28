@@ -15,6 +15,7 @@ function makeExpense(overrides: Partial<ExpenseResponse> = {}): ExpenseResponse 
     title: 'Coffee',
     value: 12.5,
     category: 'Food',
+    payment_method: 'Nubank',
     details: null,
     trip: null,
     created_at: '2026-08-01T00:00:00Z',

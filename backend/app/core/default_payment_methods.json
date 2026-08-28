@@ -1,0 +1,5 @@
+[
+  { "name": "Nubank", "is_default_for_import": true },
+  { "name": "Pix", "is_default_for_import": false },
+  { "name": "Mercado Pago", "is_default_for_import": false }
+]

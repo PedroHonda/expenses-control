@@ -3,6 +3,7 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { useDeleteExpense, useExpenses } from '../hooks/useExpenses'
 import type { ExpenseFilters } from '../hooks/useExpenses'
 import { CategoryBadge } from './CategoryBadge'
+import { PaymentMethodBadge } from './PaymentMethodBadge'
 import { formatCurrency, formatDate } from '../lib/format'
 import type { ExpenseResponse } from '../types/api'
 
@@ -60,6 +61,7 @@ export function ExpenseTable({ filters, onEdit }: ExpenseTableProps) {
               <th className="px-4 py-2">Title</th>
               <th className="px-4 py-2">Value</th>
               <th className="px-4 py-2">Category</th>
+              <th className="px-4 py-2">Payment Method</th>
               <th className="px-4 py-2">Trip</th>
               <th className="px-4 py-2">Details</th>
               <th className="px-4 py-2">
@@ -77,6 +79,9 @@ export function ExpenseTable({ filters, onEdit }: ExpenseTableProps) {
                 </td>
                 <td className="px-4 py-2">
                   <CategoryBadge name={expense.category} />
+                </td>
+                <td className="px-4 py-2">
+                  <PaymentMethodBadge name={expense.payment_method} />
                 </td>
                 <td className="px-4 py-2">
                   {expense.trip !== null && expense.trip !== '' && (

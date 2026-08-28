@@ -74,15 +74,12 @@ export function useExpenseMonthlySummary(
   return useQuery({
     queryKey: ['expense-monthly-summary', params],
     queryFn: async () => {
-      const { data } = await api.get<ExpenseMonthlySummaryResponse>(
-        '/expenses/summary-by-month',
-        {
-          params: {
-            date_from: params.dateFrom,
-            date_to: params.dateTo,
-          },
+      const { data } = await api.get<ExpenseMonthlySummaryResponse>('/expenses/summary-by-month', {
+        params: {
+          date_from: params.dateFrom,
+          date_to: params.dateTo,
         },
-      )
+      })
       return data
     },
     enabled: options?.enabled ?? true,

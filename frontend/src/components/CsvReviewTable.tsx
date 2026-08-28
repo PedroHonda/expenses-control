@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useImportBatch } from '../hooks/useCsvImport'
 import { getErrorMessage, getImportBatchRowErrors } from '../lib/errors'
 import { CategorySelect } from './CategorySelect'
+import { PaymentMethodSelect } from './PaymentMethodSelect'
 import type {
   CSVParseResponse,
   ExpenseCreate,
@@ -20,6 +21,7 @@ interface EditableRow {
   title: string
   value: string
   category: string
+  paymentMethod: string
   details: string
   trip: string
   excluded: boolean
@@ -38,6 +40,7 @@ function toEditableRow(row: ParsedExpenseRow): EditableRow {
     title: row.title ?? '',
     value: row.value !== null ? String(row.value) : '',
     category: row.category ?? '',
+    paymentMethod: row.payment_method ?? '',
     details: row.details ?? '',
     trip: row.trip ?? '',
     excluded: row.is_duplicate,
@@ -48,7 +51,13 @@ function toEditableRow(row: ParsedExpenseRow): EditableRow {
 }
 
 function isRowIncomplete(row: EditableRow): boolean {
-  return row.date === '' || row.title === '' || row.value === '' || row.category === ''
+  return (
+    row.date === '' ||
+    row.title === '' ||
+    row.value === '' ||
+    row.category === '' ||
+    row.paymentMethod === ''
+  )
 }
 
 function rowMessages(row: EditableRow): string[] {
@@ -78,6 +87,7 @@ export function CsvReviewTable({ parseResult, onDone }: CsvReviewTableProps) {
       title: row.title.trim(),
       value: Number(row.value),
       category: row.category,
+      payment_method: row.paymentMethod,
       details: row.details.trim() === '' ? null : row.details.trim(),
       trip: row.trip.trim() === '' ? null : row.trip.trim(),
     }))
@@ -142,6 +152,7 @@ export function CsvReviewTable({ parseResult, onDone }: CsvReviewTableProps) {
                 <th className="px-3 py-2">Title</th>
                 <th className="px-3 py-2">Value</th>
                 <th className="px-3 py-2">Category</th>
+                <th className="px-3 py-2">Payment Method</th>
                 <th className="px-3 py-2">Details</th>
                 <th className="px-3 py-2">Trip</th>
               </tr>
@@ -219,6 +230,14 @@ export function CsvReviewTable({ parseResult, onDone }: CsvReviewTableProps) {
                         value={row.category}
                         onChange={(value) => {
                           setRows((prev) => updateRow(prev, row.rowIndex, { category: value }))
+                        }}
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <PaymentMethodSelect
+                        value={row.paymentMethod}
+                        onChange={(value) => {
+                          setRows((prev) => updateRow(prev, row.rowIndex, { paymentMethod: value }))
                         }}
                       />
                     </td>

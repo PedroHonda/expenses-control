@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 import pytest
 from httpx import AsyncClient
 
-pytestmark = pytest.mark.usefixtures("seeded_categories")
+pytestmark = pytest.mark.usefixtures("seeded_categories", "seeded_payment_methods")
 
 
 def _parse_timestamp(value: str) -> datetime:
@@ -23,6 +23,7 @@ async def test_create_expense(client: AsyncClient) -> None:
         "title": "Parking near work",
         "value": 12.5,
         "category": "Parking",
+        "payment_method": "Nubank",
     }
 
     response = await client.post("/api/v1/expenses/", json=payload)
@@ -31,12 +32,36 @@ async def test_create_expense(client: AsyncClient) -> None:
     body = response.json()
     assert body["id"]
     assert body["category"] == "Parking"
+    assert body["payment_method"] == "Nubank"
     assert body["value"] == pytest.approx(12.5)
     assert body["created_at"]
 
 
 async def test_create_expense_with_unknown_category_returns_422(client: AsyncClient) -> None:
-    payload = {"date": "2026-08-10", "title": "X", "value": 1, "category": "DoesNotExist"}
+    payload = {
+        "date": "2026-08-10",
+        "title": "X",
+        "value": 1,
+        "category": "DoesNotExist",
+        "payment_method": "Nubank",
+    }
+
+    response = await client.post("/api/v1/expenses/", json=payload)
+
+    assert response.status_code == 422
+    assert "DoesNotExist" in response.json()["detail"]
+
+
+async def test_create_expense_with_unknown_payment_method_returns_422(
+    client: AsyncClient,
+) -> None:
+    payload = {
+        "date": "2026-08-10",
+        "title": "X",
+        "value": 1,
+        "category": "Uber",
+        "payment_method": "DoesNotExist",
+    }
 
     response = await client.post("/api/v1/expenses/", json=payload)
 
@@ -45,7 +70,13 @@ async def test_create_expense_with_unknown_category_returns_422(client: AsyncCli
 
 
 async def test_create_expense_with_non_positive_value_returns_422(client: AsyncClient) -> None:
-    payload = {"date": "2026-08-10", "title": "X", "value": 0, "category": "Uber"}
+    payload = {
+        "date": "2026-08-10",
+        "title": "X",
+        "value": 0,
+        "category": "Uber",
+        "payment_method": "Nubank",
+    }
 
     response = await client.post("/api/v1/expenses/", json=payload)
 
@@ -60,15 +91,28 @@ async def test_list_expenses_filters_by_category_and_date_range(client: AsyncCli
             "title": "In range, right category",
             "value": 10,
             "category": "Uber",
+            "payment_method": "Nubank",
         },
     )
     await client.post(
         "/api/v1/expenses/",
-        json={"date": "2026-09-01", "title": "Out of range", "value": 20, "category": "Uber"},
+        json={
+            "date": "2026-09-01",
+            "title": "Out of range",
+            "value": 20,
+            "category": "Uber",
+            "payment_method": "Nubank",
+        },
     )
     await client.post(
         "/api/v1/expenses/",
-        json={"date": "2026-08-05", "title": "Wrong category", "value": 30, "category": "Food"},
+        json={
+            "date": "2026-08-05",
+            "title": "Wrong category",
+            "value": 30,
+            "category": "Food",
+            "payment_method": "Nubank",
+        },
     )
 
     response = await client.get(
@@ -90,6 +134,7 @@ async def test_update_expense(client: AsyncClient) -> None:
             "title": "Parking near work",
             "value": 12.5,
             "category": "Parking",
+            "payment_method": "Nubank",
         },
     )
     expense_id = create_response.json()["id"]
@@ -101,6 +146,7 @@ async def test_update_expense(client: AsyncClient) -> None:
             "title": "Parking downtown",
             "value": 20,
             "category": "Parking",
+            "payment_method": "Pix",
         },
     )
 
@@ -116,7 +162,13 @@ async def test_update_expense(client: AsyncClient) -> None:
 
 
 async def test_update_expense_not_found_returns_404(client: AsyncClient) -> None:
-    payload = {"date": "2026-08-10", "title": "X", "value": 1, "category": "Uber"}
+    payload = {
+        "date": "2026-08-10",
+        "title": "X",
+        "value": 1,
+        "category": "Uber",
+        "payment_method": "Nubank",
+    }
 
     response = await client.put("/api/v1/expenses/000000000000000000000000", json=payload)
 
@@ -126,13 +178,25 @@ async def test_update_expense_not_found_returns_404(client: AsyncClient) -> None
 async def test_update_expense_with_unknown_category_returns_422(client: AsyncClient) -> None:
     create_response = await client.post(
         "/api/v1/expenses/",
-        json={"date": "2026-08-10", "title": "X", "value": 1, "category": "Uber"},
+        json={
+            "date": "2026-08-10",
+            "title": "X",
+            "value": 1,
+            "category": "Uber",
+            "payment_method": "Nubank",
+        },
     )
     expense_id = create_response.json()["id"]
 
     response = await client.put(
         f"/api/v1/expenses/{expense_id}",
-        json={"date": "2026-08-10", "title": "X", "value": 1, "category": "DoesNotExist"},
+        json={
+            "date": "2026-08-10",
+            "title": "X",
+            "value": 1,
+            "category": "DoesNotExist",
+            "payment_method": "Nubank",
+        },
     )
 
     assert response.status_code == 422
@@ -140,10 +204,47 @@ async def test_update_expense_with_unknown_category_returns_422(client: AsyncCli
     assert unchanged.json()["items"][0]["category"] == "Uber"
 
 
+async def test_update_expense_with_unknown_payment_method_returns_422(
+    client: AsyncClient,
+) -> None:
+    create_response = await client.post(
+        "/api/v1/expenses/",
+        json={
+            "date": "2026-08-10",
+            "title": "X",
+            "value": 1,
+            "category": "Uber",
+            "payment_method": "Nubank",
+        },
+    )
+    expense_id = create_response.json()["id"]
+
+    response = await client.put(
+        f"/api/v1/expenses/{expense_id}",
+        json={
+            "date": "2026-08-10",
+            "title": "X",
+            "value": 1,
+            "category": "Uber",
+            "payment_method": "DoesNotExist",
+        },
+    )
+
+    assert response.status_code == 422
+    unchanged = await client.get("/api/v1/expenses/")
+    assert unchanged.json()["items"][0]["payment_method"] == "Nubank"
+
+
 async def test_delete_expense(client: AsyncClient) -> None:
     create_response = await client.post(
         "/api/v1/expenses/",
-        json={"date": "2026-08-10", "title": "X", "value": 1, "category": "Uber"},
+        json={
+            "date": "2026-08-10",
+            "title": "X",
+            "value": 1,
+            "category": "Uber",
+            "payment_method": "Nubank",
+        },
     )
     expense_id = create_response.json()["id"]
 
@@ -168,12 +269,19 @@ async def test_list_expenses_filters_by_trip(client: AsyncClient) -> None:
             "title": "Toll",
             "value": 15.8,
             "category": "Toll",
+            "payment_method": "Nubank",
             "trip": "Serra Trip",
         },
     )
     await client.post(
         "/api/v1/expenses/",
-        json={"date": "2026-08-02", "title": "Groceries", "value": 100, "category": "Supermarket"},
+        json={
+            "date": "2026-08-02",
+            "title": "Groceries",
+            "value": 100,
+            "category": "Supermarket",
+            "payment_method": "Nubank",
+        },
     )
 
     response = await client.get("/api/v1/expenses/", params={"trip": "Serra Trip"})
@@ -184,7 +292,13 @@ async def test_list_expenses_filters_by_trip(client: AsyncClient) -> None:
 async def test_expense_summary_groups_by_category(client: AsyncClient) -> None:
     await client.post(
         "/api/v1/expenses/",
-        json={"date": "2026-08-01", "title": "Groceries", "value": 100, "category": "Supermarket"},
+        json={
+            "date": "2026-08-01",
+            "title": "Groceries",
+            "value": 100,
+            "category": "Supermarket",
+            "payment_method": "Nubank",
+        },
     )
     await client.post(
         "/api/v1/expenses/",
@@ -193,11 +307,18 @@ async def test_expense_summary_groups_by_category(client: AsyncClient) -> None:
             "title": "More groceries",
             "value": 50,
             "category": "Supermarket",
+            "payment_method": "Nubank",
         },
     )
     await client.post(
         "/api/v1/expenses/",
-        json={"date": "2026-08-03", "title": "Ride", "value": 20, "category": "Uber"},
+        json={
+            "date": "2026-08-03",
+            "title": "Ride",
+            "value": 20,
+            "category": "Uber",
+            "payment_method": "Nubank",
+        },
     )
 
     response = await client.get("/api/v1/expenses/summary")
@@ -215,11 +336,23 @@ async def test_expense_summary_groups_by_category(client: AsyncClient) -> None:
 async def test_expense_summary_filters_by_date_range(client: AsyncClient) -> None:
     await client.post(
         "/api/v1/expenses/",
-        json={"date": "2026-08-01", "title": "In range", "value": 10, "category": "Uber"},
+        json={
+            "date": "2026-08-01",
+            "title": "In range",
+            "value": 10,
+            "category": "Uber",
+            "payment_method": "Nubank",
+        },
     )
     await client.post(
         "/api/v1/expenses/",
-        json={"date": "2026-09-01", "title": "Out of range", "value": 999, "category": "Uber"},
+        json={
+            "date": "2026-09-01",
+            "title": "Out of range",
+            "value": 999,
+            "category": "Uber",
+            "payment_method": "Nubank",
+        },
     )
 
     response = await client.get(
@@ -242,7 +375,13 @@ async def test_expense_summary_empty_when_no_expenses(client: AsyncClient) -> No
 async def test_monthly_summary_groups_by_year_month_category(client: AsyncClient) -> None:
     await client.post(
         "/api/v1/expenses/",
-        json={"date": "2026-08-01", "title": "Groceries", "value": 100, "category": "Supermarket"},
+        json={
+            "date": "2026-08-01",
+            "title": "Groceries",
+            "value": 100,
+            "category": "Supermarket",
+            "payment_method": "Nubank",
+        },
     )
     await client.post(
         "/api/v1/expenses/",
@@ -251,11 +390,18 @@ async def test_monthly_summary_groups_by_year_month_category(client: AsyncClient
             "title": "More groceries",
             "value": 50,
             "category": "Supermarket",
+            "payment_method": "Nubank",
         },
     )
     await client.post(
         "/api/v1/expenses/",
-        json={"date": "2026-09-01", "title": "Ride", "value": 20, "category": "Uber"},
+        json={
+            "date": "2026-09-01",
+            "title": "Ride",
+            "value": 20,
+            "category": "Uber",
+            "payment_method": "Nubank",
+        },
     )
 
     response = await client.get("/api/v1/expenses/summary-by-month")
@@ -274,11 +420,23 @@ async def test_monthly_summary_groups_by_year_month_category(client: AsyncClient
 async def test_monthly_summary_filters_by_date_range(client: AsyncClient) -> None:
     await client.post(
         "/api/v1/expenses/",
-        json={"date": "2026-08-01", "title": "In range", "value": 10, "category": "Uber"},
+        json={
+            "date": "2026-08-01",
+            "title": "In range",
+            "value": 10,
+            "category": "Uber",
+            "payment_method": "Nubank",
+        },
     )
     await client.post(
         "/api/v1/expenses/",
-        json={"date": "2026-09-01", "title": "Out of range", "value": 999, "category": "Uber"},
+        json={
+            "date": "2026-09-01",
+            "title": "Out of range",
+            "value": 999,
+            "category": "Uber",
+            "payment_method": "Nubank",
+        },
     )
 
     response = await client.get(

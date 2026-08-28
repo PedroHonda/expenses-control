@@ -12,7 +12,7 @@ from app.schemas.expense import (
     ImportBatchRequest,
     ImportBatchResponse,
 )
-from app.services import csv_parser, expense_service
+from app.services import csv_parser, expense_service, payment_method_service
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
 
@@ -23,7 +23,7 @@ MAX_CSV_SIZE_BYTES = 5 * 1024 * 1024
 async def create_expense(payload: ExpenseCreate) -> ExpenseResponse:
     try:
         return await expense_service.create_expense(payload)
-    except expense_service.UnknownCategoryError as exc:
+    except (expense_service.UnknownCategoryError, expense_service.UnknownPaymentMethodError) as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
         ) from exc
@@ -57,6 +57,16 @@ async def upload_csv(file: UploadFile = File(...)) -> CSVParseResponse:
     for row in parsed.rows:
         if row.date is not None and row.title is not None and row.value is not None:
             row.is_duplicate = (row.date, row.title, row.value) in duplicate_keys
+
+    # payment_method isn't a column real bank exports have (see spec 08
+    # §2.3) -- the parser leaves it None, and this is the DB-dependent fill
+    # step (parse_csv itself has no database access, same reasoning as the
+    # duplicate-flagging pass above).
+    default_payment_method = await payment_method_service.get_default_import_payment_method()
+    if default_payment_method is not None:
+        for row in parsed.rows:
+            if row.payment_method is None:
+                row.payment_method = default_payment_method
 
     return parsed
 
@@ -105,7 +115,7 @@ async def update_expense(expense_id: str, payload: ExpenseCreate) -> ExpenseResp
         return await expense_service.update_expense(expense_id, payload)
     except expense_service.ExpenseNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    except expense_service.UnknownCategoryError as exc:
+    except (expense_service.UnknownCategoryError, expense_service.UnknownPaymentMethodError) as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
         ) from exc

@@ -23,6 +23,7 @@ COLUMN_ALIASES: dict[str, list[str]] = {
     "title": ["title", "titulo", "título", "description", "descrição", "descricao"],
     "value": ["value", "valor", "amount"],
     "category": ["category", "categoria"],
+    "payment_method": ["payment_method", "payment method", "forma_pagamento", "forma de pagamento"],
     "details": ["details", "detalhes", "notes", "observações", "observacoes"],
     "trip": ["trip", "viagem"],
 }
@@ -112,6 +113,13 @@ def _parse_row(
     if "category" in column_map and "category" not in parsed:
         raw_category = (raw_row.get(column_map["category"]) or "").strip()
         parsed["category"] = raw_category or None
+
+    if "payment_method" in column_map:
+        raw_payment_method = (raw_row.get(column_map["payment_method"]) or "").strip()
+        # Left None (not required_fields -- see module docstring/spec 08 §2.3)
+        # when absent: the upload-csv route fills the configured default,
+        # since the parser itself has no database access to look one up.
+        parsed["payment_method"] = raw_payment_method or None
 
     if "details" in column_map:
         raw_details = (raw_row.get(column_map["details"]) or "").strip()
