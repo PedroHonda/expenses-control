@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import type {
   ExpenseCreate,
   ExpenseListResponse,
+  ExpenseMonthlySummaryResponse,
   ExpenseResponse,
   ExpenseSummaryResponse,
 } from '../types/api'
@@ -59,6 +60,32 @@ export function useExpenseSummary(params: ExpenseSummaryParams) {
       })
       return data
     },
+  })
+}
+
+/** Unpaginated per-(year, month, category) totals for a date range -- backs
+ * the Reports view's "By month" mode (spec 07). Same shape of tradeoff as
+ * `useExpenseSummary`: the backend aggregates the whole range, so category
+ * selection can be toggled client-side without refetching. */
+export function useExpenseMonthlySummary(
+  params: ExpenseSummaryParams,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: ['expense-monthly-summary', params],
+    queryFn: async () => {
+      const { data } = await api.get<ExpenseMonthlySummaryResponse>(
+        '/expenses/summary-by-month',
+        {
+          params: {
+            date_from: params.dateFrom,
+            date_to: params.dateTo,
+          },
+        },
+      )
+      return data
+    },
+    enabled: options?.enabled ?? true,
   })
 }
 

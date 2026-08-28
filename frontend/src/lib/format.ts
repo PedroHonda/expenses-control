@@ -12,6 +12,14 @@ export function formatDate(iso: string): string {
   return new Date(`${iso}T00:00:00`).toLocaleDateString('pt-BR')
 }
 
+/** "MM/YYYY" label for a (year, month) pair, e.g. formatMonthYear(2026, 8)
+ * -> "08/2026". Built from plain numbers (not a Date) since the values
+ * come straight from the backend's `$year`/`$month` aggregation -- no
+ * timezone conversion involved, unlike formatDate above. */
+export function formatMonthYear(year: number, month: number): string {
+  return `${String(month).padStart(2, '0')}/${String(year)}`
+}
+
 /** Today's date as YYYY-MM-DD, in the browser's local timezone.
  *
  * NOT `new Date().toISOString().slice(0, 10)` -- toISOString() is always

@@ -6,6 +6,7 @@ from app.schemas.expense import (
     CSVParseResponse,
     ExpenseCreate,
     ExpenseListResponse,
+    ExpenseMonthlySummaryResponse,
     ExpenseResponse,
     ExpenseSummaryResponse,
     ImportBatchRequest,
@@ -85,6 +86,17 @@ async def get_expense_summary(
     view (spec 06) -- see `expense_service.get_category_summary` for why
     this is a real aggregation rather than reusing `list_expenses`."""
     return await expense_service.get_category_summary(date_from=date_from, date_to=date_to)
+
+
+@router.get("/summary-by-month", response_model=ExpenseMonthlySummaryResponse)
+async def get_expense_monthly_summary(
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> ExpenseMonthlySummaryResponse:
+    """Unpaginated per-(year, month, category) totals for a date range.
+    Backs the Reports view's "By month" mode (spec 07) -- see
+    `expense_service.get_monthly_summary`."""
+    return await expense_service.get_monthly_summary(date_from=date_from, date_to=date_to)
 
 
 @router.put("/{expense_id}", response_model=ExpenseResponse)

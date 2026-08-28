@@ -39,6 +39,18 @@ class ExpenseSummaryResponse(BaseModel):
     items: list[CategorySummaryItem]
 
 
+class MonthlySummaryItem(BaseModel):
+    year: int
+    month: int
+    category: str
+    total: float
+    count: int
+
+
+class ExpenseMonthlySummaryResponse(BaseModel):
+    items: list[MonthlySummaryItem]
+
+
 class ParsedExpenseRow(BaseModel):
     """One row from an uploaded CSV, parsed but not yet persisted.
 

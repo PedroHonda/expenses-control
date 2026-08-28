@@ -8,9 +8,11 @@ from app.schemas.expense import (
     CategorySummaryItem,
     ExpenseCreate,
     ExpenseListResponse,
+    ExpenseMonthlySummaryResponse,
     ExpenseResponse,
     ExpenseSummaryResponse,
     ImportBatchRowError,
+    MonthlySummaryItem,
 )
 from app.services.category_service import find_category_ci
 
@@ -184,3 +186,51 @@ async def get_category_summary(
         .to_list()
     )
     return ExpenseSummaryResponse(items=items)
+
+
+async def get_monthly_summary(
+    *,
+    date_from: date | None,
+    date_to: date | None,
+) -> ExpenseMonthlySummaryResponse:
+    """Per-(year, month, category) totals for a date range, unpaginated --
+    backs the Reports view's "By month" mode (spec 07). Category is kept in
+    the grouping (rather than collapsing straight to per-month totals) so
+    the frontend can filter by the selected category set client-side, same
+    as `get_category_summary`."""
+    query_filters = []
+    if date_from is not None:
+        query_filters.append(Expense.date >= date_from)
+    if date_to is not None:
+        query_filters.append(Expense.date <= date_to)
+
+    pipeline = [
+        {
+            "$group": {
+                "_id": {
+                    "year": {"$year": "$date"},
+                    "month": {"$month": "$date"},
+                    "category": "$category",
+                },
+                "total": {"$sum": "$value"},
+                "count": {"$sum": 1},
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "year": "$_id.year",
+                "month": "$_id.month",
+                "category": "$_id.category",
+                "total": 1,
+                "count": 1,
+            }
+        },
+        {"$sort": {"year": 1, "month": 1, "total": -1}},
+    ]
+    items = (
+        await Expense.find(*query_filters)
+        .aggregate(pipeline, projection_model=MonthlySummaryItem)
+        .to_list()
+    )
+    return ExpenseMonthlySummaryResponse(items=items)

@@ -237,3 +237,62 @@ async def test_expense_summary_empty_when_no_expenses(client: AsyncClient) -> No
 
     assert response.status_code == 200
     assert response.json()["items"] == []
+
+
+async def test_monthly_summary_groups_by_year_month_category(client: AsyncClient) -> None:
+    await client.post(
+        "/api/v1/expenses/",
+        json={"date": "2026-08-01", "title": "Groceries", "value": 100, "category": "Supermarket"},
+    )
+    await client.post(
+        "/api/v1/expenses/",
+        json={
+            "date": "2026-08-20",
+            "title": "More groceries",
+            "value": 50,
+            "category": "Supermarket",
+        },
+    )
+    await client.post(
+        "/api/v1/expenses/",
+        json={"date": "2026-09-01", "title": "Ride", "value": 20, "category": "Uber"},
+    )
+
+    response = await client.get("/api/v1/expenses/summary-by-month")
+
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert len(items) == 2
+    august = next(item for item in items if item["month"] == 8)
+    september = next(item for item in items if item["month"] == 9)
+    assert august == {"year": 2026, "month": 8, "category": "Supermarket", "total": 150, "count": 2}
+    assert september == {"year": 2026, "month": 9, "category": "Uber", "total": 20, "count": 1}
+    # Sorted chronologically (year, then month).
+    assert [item["month"] for item in items] == [8, 9]
+
+
+async def test_monthly_summary_filters_by_date_range(client: AsyncClient) -> None:
+    await client.post(
+        "/api/v1/expenses/",
+        json={"date": "2026-08-01", "title": "In range", "value": 10, "category": "Uber"},
+    )
+    await client.post(
+        "/api/v1/expenses/",
+        json={"date": "2026-09-01", "title": "Out of range", "value": 999, "category": "Uber"},
+    )
+
+    response = await client.get(
+        "/api/v1/expenses/summary-by-month",
+        params={"date_from": "2026-08-01", "date_to": "2026-08-31"},
+    )
+
+    items = response.json()["items"]
+    assert len(items) == 1
+    assert items[0] == {"year": 2026, "month": 8, "category": "Uber", "total": 10, "count": 1}
+
+
+async def test_monthly_summary_empty_when_no_expenses(client: AsyncClient) -> None:
+    response = await client.get("/api/v1/expenses/summary-by-month")
+
+    assert response.status_code == 200
+    assert response.json()["items"] == []
