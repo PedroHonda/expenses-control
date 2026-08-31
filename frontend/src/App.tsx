@@ -70,7 +70,9 @@ function App() {
           </button>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl p-6">{renderView()}</main>
+      <main className={`mx-auto p-6 ${view === 'import' ? 'max-w-7xl' : 'max-w-5xl'}`}>
+        {renderView()}
+      </main>
     </div>
   )
 }
