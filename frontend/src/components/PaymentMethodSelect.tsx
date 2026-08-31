@@ -8,6 +8,9 @@ interface PaymentMethodSelectProps {
   onChange: (value: string) => void
   id?: string
   required?: boolean
+  /** FilterBar wants an "all payment methods" option; forms don't. */
+  allowEmpty?: boolean
+  emptyLabel?: string
 }
 
 const CREATE_NEW_VALUE = '__create_new__'
@@ -19,6 +22,8 @@ export function PaymentMethodSelect({
   onChange,
   id,
   required = false,
+  allowEmpty = false,
+  emptyLabel = 'All payment methods',
 }: PaymentMethodSelectProps) {
   const { data: paymentMethods, isPending, isError } = usePaymentMethods()
   const createPaymentMethod = useCreatePaymentMethod()
@@ -96,7 +101,8 @@ export function PaymentMethodSelect({
       disabled={isPending}
       className="rounded border border-slate-300 px-2 py-1 text-sm"
     >
-      {value === '' && (
+      {allowEmpty && <option value="">{emptyLabel}</option>}
+      {!allowEmpty && value === '' && (
         <option value="" disabled>
           Select a payment method
         </option>

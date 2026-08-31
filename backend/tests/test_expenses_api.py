@@ -289,6 +289,33 @@ async def test_list_expenses_filters_by_trip(client: AsyncClient) -> None:
     assert response.json()["total"] == 1
 
 
+async def test_list_expenses_filters_by_payment_method(client: AsyncClient) -> None:
+    await client.post(
+        "/api/v1/expenses/",
+        json={
+            "date": "2026-08-01",
+            "title": "Toll",
+            "value": 15.8,
+            "category": "Toll",
+            "payment_method": "Pix",
+        },
+    )
+    await client.post(
+        "/api/v1/expenses/",
+        json={
+            "date": "2026-08-02",
+            "title": "Groceries",
+            "value": 100,
+            "category": "Supermarket",
+            "payment_method": "Nubank",
+        },
+    )
+
+    response = await client.get("/api/v1/expenses/", params={"payment_method": "Pix"})
+
+    assert response.json()["total"] == 1
+
+
 async def test_expense_summary_groups_by_category(client: AsyncClient) -> None:
     await client.post(
         "/api/v1/expenses/",

@@ -155,6 +155,7 @@ async def list_expenses(
     date_from: date | None,
     date_to: date | None,
     category: str | None,
+    payment_method: str | None,
     trip: str | None,
     skip: int,
     limit: int,
@@ -166,6 +167,8 @@ async def list_expenses(
         query_filters.append(Expense.date <= date_to)
     if category is not None:
         query_filters.append(Expense.category == category)
+    if payment_method is not None:
+        query_filters.append(Expense.payment_method == payment_method)
     if trip is not None:
         query_filters.append(Expense.trip == trip)
 

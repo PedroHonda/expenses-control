@@ -1,6 +1,7 @@
 import type { ChangeEvent } from 'react'
 import type { ExpenseFilters } from '../hooks/useExpenses'
 import { CategorySelect } from './CategorySelect'
+import { PaymentMethodSelect } from './PaymentMethodSelect'
 
 interface FilterBarProps {
   filters: ExpenseFilters
@@ -57,6 +58,19 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
           value={filters.category ?? ''}
           onChange={(value) => {
             onChange({ ...filters, category: value === '' ? undefined : value })
+          }}
+          allowEmpty
+        />
+      </div>
+      <div>
+        <label htmlFor="filter-payment-method" className="block text-xs font-medium text-slate-500">
+          Payment Method
+        </label>
+        <PaymentMethodSelect
+          id="filter-payment-method"
+          value={filters.paymentMethod ?? ''}
+          onChange={(value) => {
+            onChange({ ...filters, paymentMethod: value === '' ? undefined : value })
           }}
           allowEmpty
         />

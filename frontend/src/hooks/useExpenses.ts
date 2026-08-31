@@ -12,6 +12,7 @@ export interface ExpenseFilters {
   dateFrom?: string
   dateTo?: string
   category?: string
+  paymentMethod?: string
   trip?: string
 }
 
@@ -29,6 +30,7 @@ export function useExpenses(params: ExpenseListParams) {
           date_from: params.dateFrom,
           date_to: params.dateTo,
           category: params.category,
+          payment_method: params.paymentMethod,
           trip: params.trip,
           skip: params.skip,
           limit: params.limit,
