@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { SubmitEvent } from 'react'
-import { useCategories, useUpdateCategory } from '../hooks/useCategories'
+import { useCategories, useCreateCategory, useUpdateCategory } from '../hooks/useCategories'
 import {
   useCreatePaymentMethod,
   usePaymentMethods,
@@ -13,6 +13,22 @@ import { getErrorMessage } from '../lib/errors'
 export function SettingsView() {
   const { data: categories, isPending, isError } = useCategories()
   const updateCategory = useUpdateCategory()
+  const createCategory = useCreateCategory()
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [createCategoryError, setCreateCategoryError] = useState<string | null>(null)
+
+  function handleCreateCategory(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setCreateCategoryError(null)
+    createCategory.mutate(newCategoryName.trim(), {
+      onSuccess: () => {
+        setNewCategoryName('')
+      },
+      onError: (error: unknown) => {
+        setCreateCategoryError(getErrorMessage(error))
+      },
+    })
+  }
 
   const {
     data: paymentMethods,
@@ -76,6 +92,30 @@ export function SettingsView() {
             ))}
           </ul>
         )}
+
+        <form onSubmit={handleCreateCategory} className="flex flex-wrap items-center gap-2">
+          <input
+            type="text"
+            value={newCategoryName}
+            onChange={(event) => {
+              setNewCategoryName(event.target.value)
+            }}
+            placeholder="New category name"
+            maxLength={50}
+            required
+            className="rounded border border-slate-300 px-2 py-1 text-sm"
+          />
+          <button
+            type="submit"
+            disabled={createCategory.isPending}
+            className="rounded bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+          >
+            Add Category
+          </button>
+          {createCategoryError !== null && (
+            <span className="text-xs text-rose-600">{createCategoryError}</span>
+          )}
+        </form>
       </div>
 
       <div className="space-y-4">

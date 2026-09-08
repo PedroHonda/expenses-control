@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SettingsView } from './SettingsView'
-import { useCategories, useUpdateCategory } from '../hooks/useCategories'
+import { useCategories, useCreateCategory, useUpdateCategory } from '../hooks/useCategories'
 import {
   useCreatePaymentMethod,
   usePaymentMethods,
@@ -29,6 +29,7 @@ beforeEach(() => {
   vi.mocked(usePaymentMethods).mockReturnValue(mockQueryResult({ data: paymentMethods }))
   vi.mocked(useSetDefaultImportPaymentMethod).mockReturnValue(mockMutationResult())
   vi.mocked(useCreatePaymentMethod).mockReturnValue(mockMutationResult())
+  vi.mocked(useCreateCategory).mockReturnValue(mockMutationResult())
 })
 
 describe('SettingsView', () => {
@@ -51,6 +52,19 @@ describe('SettingsView', () => {
     await user.click(screen.getAllByRole('checkbox')[0])
 
     expect(mutate).toHaveBeenCalledWith({ id: '1', exclude_from_total: true })
+  })
+
+  it('submits the new-category form with the trimmed name', async () => {
+    const mutate = vi.fn()
+    vi.mocked(useCreateCategory).mockReturnValue(mockMutationResult({ mutate }))
+    vi.mocked(useUpdateCategory).mockReturnValue(mockMutationResult())
+    const user = userEvent.setup()
+    render(<SettingsView />)
+
+    await user.type(screen.getByPlaceholderText('New category name'), '  Transport  ')
+    await user.click(screen.getByRole('button', { name: 'Add Category' }))
+
+    expect(mutate).toHaveBeenCalledWith('Transport', expect.anything())
   })
 
   it('renders one radio per payment method, checked to match is_default_for_import', () => {
