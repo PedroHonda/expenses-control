@@ -1,7 +1,9 @@
 from datetime import UTC, datetime
+from io import BytesIO
 
 import pytest
 from httpx import AsyncClient
+from pypdf import PdfReader
 
 pytestmark = pytest.mark.usefixtures("seeded_categories", "seeded_payment_methods")
 
@@ -481,3 +483,151 @@ async def test_monthly_summary_empty_when_no_expenses(client: AsyncClient) -> No
 
     assert response.status_code == 200
     assert response.json()["items"] == []
+
+
+def _pdf_text(content: bytes) -> str:
+    reader = PdfReader(BytesIO(content))
+    return "\n".join(page.extract_text() for page in reader.pages)
+
+
+async def test_monthly_summary_pdf_returns_pivot_table(client: AsyncClient) -> None:
+    await client.post(
+        "/api/v1/expenses/",
+        json={
+            "date": "2026-08-01",
+            "title": "Groceries",
+            "value": 100,
+            "category": "Supermarket",
+            "payment_method": "Nubank",
+        },
+    )
+    await client.post(
+        "/api/v1/expenses/",
+        json={
+            "date": "2026-09-01",
+            "title": "Ride",
+            "value": 20,
+            "category": "Uber",
+            "payment_method": "Nubank",
+        },
+    )
+
+    response = await client.get(
+        "/api/v1/expenses/summary-by-month/pdf",
+        params={"categories": ["Supermarket", "Uber"]},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    assert 'attachment; filename="relatorio_mensal_todos_os_periodos.pdf"' in (
+        response.headers["content-disposition"]
+    )
+    assert response.content.startswith(b"%PDF")
+
+    text = _pdf_text(response.content)
+    assert "Supermarket" in text
+    assert "Uber" in text
+    assert "08/2026" in text
+    assert "09/2026" in text
+    assert "R$ 100,00" in text
+    assert "R$ 20,00" in text
+    assert "R$ 120,00" in text  # grand total
+
+
+async def test_monthly_summary_pdf_excludes_unselected_categories(client: AsyncClient) -> None:
+    await client.post(
+        "/api/v1/expenses/",
+        json={
+            "date": "2026-08-01",
+            "title": "Groceries",
+            "value": 100,
+            "category": "Supermarket",
+            "payment_method": "Nubank",
+        },
+    )
+    await client.post(
+        "/api/v1/expenses/",
+        json={
+            "date": "2026-08-01",
+            "title": "Ride",
+            "value": 20,
+            "category": "Uber",
+            "payment_method": "Nubank",
+        },
+    )
+
+    response = await client.get(
+        "/api/v1/expenses/summary-by-month/pdf",
+        params={"categories": ["Supermarket"]},
+    )
+
+    assert response.status_code == 200
+    text = _pdf_text(response.content)
+    assert "Supermarket" in text
+    assert "Uber" not in text
+
+
+async def test_monthly_summary_pdf_filters_by_date_range(client: AsyncClient) -> None:
+    await client.post(
+        "/api/v1/expenses/",
+        json={
+            "date": "2026-08-01",
+            "title": "In range",
+            "value": 10,
+            "category": "Uber",
+            "payment_method": "Nubank",
+        },
+    )
+    await client.post(
+        "/api/v1/expenses/",
+        json={
+            "date": "2026-09-01",
+            "title": "Out of range",
+            "value": 999,
+            "category": "Uber",
+            "payment_method": "Nubank",
+        },
+    )
+
+    response = await client.get(
+        "/api/v1/expenses/summary-by-month/pdf",
+        params={
+            "categories": ["Uber"],
+            "date_from": "2026-08-01",
+            "date_to": "2026-08-31",
+        },
+    )
+
+    assert response.status_code == 200
+    assert 'filename="relatorio_mensal_2026-08-01_a_2026-08-31.pdf"' in (
+        response.headers["content-disposition"]
+    )
+    text = _pdf_text(response.content)
+    assert "R$ 10,00" in text
+    assert "999" not in text
+
+
+async def test_monthly_summary_pdf_requires_categories_param(client: AsyncClient) -> None:
+    response = await client.get("/api/v1/expenses/summary-by-month/pdf")
+
+    assert response.status_code == 422
+
+
+async def test_monthly_summary_pdf_404_when_no_expense_matches(client: AsyncClient) -> None:
+    await client.post(
+        "/api/v1/expenses/",
+        json={
+            "date": "2026-08-01",
+            "title": "Groceries",
+            "value": 100,
+            "category": "Supermarket",
+            "payment_method": "Nubank",
+        },
+    )
+
+    response = await client.get(
+        "/api/v1/expenses/summary-by-month/pdf",
+        params={"categories": ["Uber"]},
+    )
+
+    assert response.status_code == 404

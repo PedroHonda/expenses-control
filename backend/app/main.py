@@ -26,6 +26,10 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        # Content-Disposition isn't exposed to JS by default on a
+        # cross-origin response; the PDF download (spec 09) reads it
+        # client-side to name the saved file.
+        expose_headers=["Content-Disposition"],
     )
 
     app.include_router(api_router, prefix=settings.api_v1_prefix)

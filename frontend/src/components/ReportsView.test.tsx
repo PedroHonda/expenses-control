@@ -3,7 +3,11 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ReportsView } from './ReportsView'
 import { useCategories } from '../hooks/useCategories'
-import { useExpenseMonthlySummary, useExpenseSummary } from '../hooks/useExpenses'
+import {
+  downloadMonthlyPivotPdf,
+  useExpenseMonthlySummary,
+  useExpenseSummary,
+} from '../hooks/useExpenses'
 import { mockQueryResult } from '../test/mockHooks'
 import type { Category, ExpenseMonthlySummaryResponse, ExpenseSummaryResponse } from '../types/api'
 
@@ -34,6 +38,7 @@ beforeEach(() => {
   vi.mocked(useCategories).mockReturnValue(mockQueryResult({ data: categories }))
   vi.mocked(useExpenseSummary).mockReturnValue(mockQueryResult({ data: summary }))
   vi.mocked(useExpenseMonthlySummary).mockReturnValue(mockQueryResult({ data: monthlySummary }))
+  vi.mocked(downloadMonthlyPivotPdf).mockReset()
 })
 
 describe('ReportsView', () => {
@@ -128,5 +133,47 @@ describe('ReportsView', () => {
     expect(paymentRow).not.toBeNull()
     expect(paymentRow).toHaveTextContent('—')
     expect(paymentRow).toHaveTextContent('R$ 2.000,00')
+  })
+
+  it('"Download PDF" requests the pivot for the currently selected categories', async () => {
+    vi.mocked(downloadMonthlyPivotPdf).mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    render(<ReportsView />)
+
+    await user.click(screen.getByRole('button', { name: 'By category & month' }))
+    await user.click(screen.getByRole('button', { name: 'Download PDF' }))
+
+    expect(downloadMonthlyPivotPdf).toHaveBeenCalledWith({
+      dateFrom: undefined,
+      dateTo: undefined,
+      categories: ['Food'],
+    })
+  })
+
+  it('shows an inline message when the PDF request finds no matching expenses', async () => {
+    vi.mocked(downloadMonthlyPivotPdf).mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 404 },
+    })
+    const user = userEvent.setup()
+    render(<ReportsView />)
+
+    await user.click(screen.getByRole('button', { name: 'By category & month' }))
+    await user.click(screen.getByRole('button', { name: 'Download PDF' }))
+
+    expect(
+      await screen.findByText('No expenses for the selected categories and date range.'),
+    ).toBeInTheDocument()
+  })
+
+  it('shows a generic error message when the PDF request fails for another reason', async () => {
+    vi.mocked(downloadMonthlyPivotPdf).mockRejectedValue(new Error('network down'))
+    const user = userEvent.setup()
+    render(<ReportsView />)
+
+    await user.click(screen.getByRole('button', { name: 'By category & month' }))
+    await user.click(screen.getByRole('button', { name: 'Download PDF' }))
+
+    expect(await screen.findByText('Failed to generate PDF.')).toBeInTheDocument()
   })
 })
