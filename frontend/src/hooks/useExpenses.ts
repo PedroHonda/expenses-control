@@ -88,6 +88,46 @@ export function useExpenseMonthlySummary(
   })
 }
 
+export interface MonthlyPivotPdfParams extends ExpenseSummaryParams {
+  categories: string[]
+}
+
+const DEFAULT_PDF_FILENAME = 'relatorio-mensal.pdf'
+
+/** Downloads the "By category & month" pivot (spec 07 §4) as a PDF (spec
+ * 09) and saves it via a temporary `<a download>` link. Imperative rather
+ * than a `useQuery`/`useMutation` -- there's no cached data or
+ * invalidation involved, just a one-shot browser download triggered by a
+ * button click.
+ *
+ * `paramsSerializer: { indexes: null }` is required: axios's default array
+ * serialization sends `categories[]=A&categories[]=B`, which FastAPI's
+ * `categories: list[str] = Query(...)` does not parse (it expects the
+ * repeated-key form `categories=A&categories=B`). */
+export async function downloadMonthlyPivotPdf(params: MonthlyPivotPdfParams): Promise<void> {
+  const response = await api.get<Blob>('/expenses/summary-by-month/pdf', {
+    params: {
+      date_from: params.dateFrom,
+      date_to: params.dateTo,
+      categories: params.categories,
+    },
+    paramsSerializer: { indexes: null },
+    responseType: 'blob',
+  })
+
+  const disposition = response.headers['content-disposition'] as string | undefined
+  const filename = /filename="?([^"]+)"?/.exec(disposition ?? '')?.[1] ?? DEFAULT_PDF_FILENAME
+
+  const url = URL.createObjectURL(response.data)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
 export function useCreateExpense() {
   const queryClient = useQueryClient()
 

@@ -1,6 +1,8 @@
+import io
 from datetime import date
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
 
 from app.schemas.expense import (
     CSVParseResponse,
@@ -12,7 +14,7 @@ from app.schemas.expense import (
     ImportBatchRequest,
     ImportBatchResponse,
 )
-from app.services import csv_parser, expense_service, payment_method_service
+from app.services import csv_parser, expense_service, payment_method_service, pdf_report_service
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
 
@@ -107,6 +109,32 @@ async def get_expense_monthly_summary(
     Backs the Reports view's "By month" mode (spec 07) -- see
     `expense_service.get_monthly_summary`."""
     return await expense_service.get_monthly_summary(date_from=date_from, date_to=date_to)
+
+
+@router.get("/summary-by-month/pdf")
+async def get_expense_monthly_summary_pdf(
+    categories: list[str] = Query(...),
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> StreamingResponse:
+    """Renders the Reports view's "By category & month" pivot (spec 07 §4)
+    as a downloadable PDF. `categories` is the frontend's *currently
+    selected* set, not server-defaulted, so the PDF always matches what's
+    on screen -- see `.github/specs/09_pdf_monthly_report.spec.md`."""
+    summary = await expense_service.get_monthly_summary(date_from=date_from, date_to=date_to)
+    try:
+        pdf_bytes = pdf_report_service.render_monthly_pivot_pdf(
+            summary.items, categories=categories, date_from=date_from, date_to=date_to
+        )
+    except pdf_report_service.EmptyPivotError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    filename = pdf_report_service.build_filename(date_from, date_to)
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.put("/{expense_id}", response_model=ExpenseResponse)

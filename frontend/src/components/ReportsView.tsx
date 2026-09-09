@@ -1,5 +1,7 @@
 import type { ChangeEvent } from 'react'
 import { useState } from 'react'
+import axios from 'axios'
+import { Download } from 'lucide-react'
 import type { BarShapeProps } from 'recharts'
 import {
   Bar,
@@ -12,7 +14,11 @@ import {
   YAxis,
 } from 'recharts'
 import type { CategorySummaryItem } from '../types/api'
-import { useExpenseMonthlySummary, useExpenseSummary } from '../hooks/useExpenses'
+import {
+  downloadMonthlyPivotPdf,
+  useExpenseMonthlySummary,
+  useExpenseSummary,
+} from '../hooks/useExpenses'
 import { useCategories } from '../hooks/useCategories'
 import { CategoryMultiSelect } from './CategoryMultiSelect'
 import { CategoryBadge } from './CategoryBadge'
@@ -38,6 +44,8 @@ export function ReportsView() {
   // path -- see CLAUDE.md's ExpenseForm precedent for why this project
   // avoids the set-state-in-effect pattern for this kind of derived default.
   const [selectedOverride, setSelectedOverride] = useState<Set<string> | null>(null)
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false)
+  const [pdfError, setPdfError] = useState<string | null>(null)
 
   const { data: categories } = useCategories()
   const { data: summary, isPending, isError } = useExpenseSummary({ dateFrom, dateTo })
@@ -106,6 +114,22 @@ export function ReportsView() {
 
   function handleDateToChange(event: ChangeEvent<HTMLInputElement>) {
     setDateTo(event.target.value === '' ? undefined : event.target.value)
+  }
+
+  async function handleDownloadPdf() {
+    setPdfError(null)
+    setIsDownloadingPdf(true)
+    try {
+      await downloadMonthlyPivotPdf({ dateFrom, dateTo, categories: [...selected] })
+    } catch (error) {
+      setPdfError(
+        axios.isAxiosError(error) && error.response?.status === 404
+          ? 'No expenses for the selected categories and date range.'
+          : 'Failed to generate PDF.',
+      )
+    } finally {
+      setIsDownloadingPdf(false)
+    }
   }
 
   return (
@@ -288,6 +312,23 @@ export function ReportsView() {
             <p className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
               No expenses for the selected categories and date range.
             </p>
+          )}
+
+          {pivotCategories.length > 0 && (
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  void handleDownloadPdf()
+                }}
+                disabled={isDownloadingPdf}
+                className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              >
+                <Download size={16} />
+                {isDownloadingPdf ? 'Generating PDF…' : 'Download PDF'}
+              </button>
+              {pdfError && <p className="text-sm text-rose-600">{pdfError}</p>}
+            </div>
           )}
 
           {pivotCategories.length > 0 && (
